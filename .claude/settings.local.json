@@ -26,7 +26,11 @@
       "Bash(python3 -c \"import json; d=json.load\\(open\\('public/data/species.json'\\)\\); print\\('Total:', len\\(d\\)\\); existing=['Bengal Tiger','Indian Elephant','Gharial','Snow Leopard']; preserved=[s for s in d if any\\(n in s.get\\('common_name',''\\) for n in existing\\)]; print\\('Preserved:', len\\(preserved\\), [s['common_name'] for s in preserved]\\)\")",
       "Bash(node -e \"const d=require\\('./public/data/species.json'\\); const a=d.slice\\(0,3\\); const l=d.slice\\(-2\\); console.log\\(JSON.stringify\\({first:a,last:l},null,2\\)\\);\")",
       "Bash(node scripts/fetch-gbif-v2.js)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git:*)",
+      "Bash(ls -la india-s-wild-explorer/public/data/species.json)",
+      "Bash(ls -la india-s-wild-explorer/dist/data/species.json)",
+      "Bash(npm --version)"
     ]
   }
 }
