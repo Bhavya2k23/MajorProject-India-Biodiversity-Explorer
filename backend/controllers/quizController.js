@@ -6,7 +6,7 @@ const User = require("../models/User");
 // @access  Public
 exports.getQuestions = async (req, res, next) => {
   try {
-    const { category, difficulty, limit = 10 } = req.query;
+    const { category, difficulty, limit = 100 } = req.query;
     const filter = {};
     if (category) filter.category = category;
     if (difficulty) filter.difficulty = difficulty;
@@ -103,7 +103,7 @@ exports.getLeaderboard = async (req, res, next) => {
         },
       },
       { $sort: { totalScore: -1 } },
-      { $limit: 10 },
+      { $limit: 100 },
       {
         $project: {
           name: 1,

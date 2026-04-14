@@ -1,252 +1,241 @@
+// ============================================================
+// FILE: backend/scripts/seedData.js
+// India Biodiversity Explorer — 1200 Animals + 1200 Plants
+// Run via: npm run seed
+// ============================================================
+
+require("dotenv").config();
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-dotenv.config();
 
 const Species = require("../models/Species");
-const Ecosystem = require("../models/Ecosystem");
-const Zone = require("../models/Zone");
-const QuizQuestion = require("../models/QuizQuestion");
-const User = require("../models/User");
+const Plant = require("../models/Plant");
 
-const speciesData = [
-  {
-    name: "Bengal Tiger",
-    scientificName: "Panthera tigris tigris",
-    type: "Mammal",
-    zone: "Indo-Gangetic Plain",
-    ecosystem: "Tropical Forest",
-    population: 2967,
-    habitatLoss: 70,
-    pollutionLevel: 40,
-    climateRisk: 55,
-    conservationStatus: "Endangered",
-    description: "The Bengal tiger is the most numerous tiger subspecies. It inhabits the Indian subcontinent.",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/17/Tiger_in_Ranthambhore.jpg/320px-Tiger_in_Ranthambhore.jpg",
-  },
-  {
-    name: "Indian Elephant",
-    scientificName: "Elephas maximus indicus",
-    type: "Mammal",
-    zone: "Western Ghats",
-    ecosystem: "Tropical Forest",
-    population: 27312,
-    habitatLoss: 65,
-    pollutionLevel: 30,
-    climateRisk: 45,
-    conservationStatus: "Endangered",
-    description: "The Indian elephant is one of three recognized subspecies of the Asian elephant.",
-    image: "",
-  },
-  {
-    name: "Snow Leopard",
-    scientificName: "Panthera uncia",
-    type: "Mammal",
-    zone: "Himalayan",
-    ecosystem: "Alpine Meadow",
-    population: 4500,
-    habitatLoss: 60,
-    pollutionLevel: 20,
-    climateRisk: 80,
-    conservationStatus: "Vulnerable",
-    description: "The snow leopard is a large cat native to the mountain ranges of Central and South Asia.",
-    image: "",
-  },
-  {
-    name: "Indian Peafowl",
-    scientificName: "Pavo cristatus",
-    type: "Bird",
-    zone: "Deccan Plateau",
-    ecosystem: "Grassland",
-    population: 100000,
-    habitatLoss: 20,
-    pollutionLevel: 15,
-    climateRisk: 25,
-    conservationStatus: "Safe",
-    description: "The Indian peafowl is the national bird of India, known for its iridescent tail feathers.",
-    image: "",
-  },
-  {
-    name: "Ganges River Dolphin",
-    scientificName: "Platanista gangetica",
-    type: "Mammal",
-    zone: "Indo-Gangetic Plain",
-    ecosystem: "Freshwater River",
-    population: 3500,
-    habitatLoss: 75,
-    pollutionLevel: 85,
-    climateRisk: 60,
-    conservationStatus: "Endangered",
-    description: "Also called the susu, it is the national aquatic animal of India.",
-    image: "",
-  },
-  {
-    name: "Great Indian Bustard",
-    scientificName: "Ardeotis nigriceps",
-    type: "Bird",
-    zone: "Thar Desert",
-    ecosystem: "Grassland",
-    population: 150,
-    habitatLoss: 90,
-    pollutionLevel: 35,
-    climateRisk: 70,
-    conservationStatus: "Critically Endangered",
-    description: "One of the heaviest flying birds, critically endangered due to hunting and habitat loss.",
-    image: "",
-  },
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
+
+// ─── Data pools ──────────────────────────────────────────────
+const ZONES = [
+  "Himalayan Region","Indo-Gangetic Plain","Deccan Peninsula","Western Ghats",
+  "Eastern Ghats","North-East India","Thar Desert","Coastal Regions",
+  "Andaman & Nicobar Islands","Lakshadweep",
+];
+const ECOSYSTEMS = [
+  "Tropical Forest","Subtropical Forest","Temperate Forest","Montane Forest",
+  "Wet Evergreen Forest","Dry Deciduous Forest","Mangrove Forest","Grassland",
+  "Shrubland","Alpine Meadow","Desert","Wetland","Coral Reef","Coastal",
+];
+const ANIMAL_TYPES = ["Mammal","Bird","Reptile","Amphibian","Fish","Insect","Arachnid","Crustacean","Mollusk"];
+const PLANT_TYPES  = ["Tree","Shrub","Herb","Grass","Fern","Climber","Epiphyte","Succulent","Aquatic"];
+const STATUSES = ["Safe","Near Threatened","Vulnerable","Endangered","Critically Endangered"];
+const HABITATS = [
+  "Dense tropical forest","Open grassland","Rocky mountain slopes","River banks",
+  "Coastal mangroves","Marshy wetlands","Sandy desert","Tropical rainforest",
+  "Dry deciduous forest","Alpine meadows","Cave systems","Agricultural fields",
+  "Urban periphery","Coral reefs","Estuaries",
+];
+const USES = ["Medicinal","Timber","Ornamental","Food","Fiber","Fuel","Religious","Pesticide","Dye","Tannin","Latex","Resin","Spice","Fodder"];
+const THREATS = ["Habitat loss","Poaching","Climate change","Pollution","Human-wildlife conflict","Invasive species","Disease","Natural predation","Forest fire","Water contamination"];
+
+const ANIMAL_BASE_NAMES = [
+  "Tiger","Leopard","Elephant","Bear","Fox","Jackal","Hare","Squirrel","Marten","Otter",
+  "Mongoose","Civet","Pangolin","Porcupine","Wild Dog","Wolf","Hyena","Lion","Peacock",
+  "Parrot","Woodpecker","Owl","Eagle","Falcon","Vulture","Pigeon","Dove","Quail","Pheasant",
+  "Hornbill","Stork","Heron","Ibis","Swan","Duck","Goose","Pelican","Cormorant","Kingfisher",
+  "Sunbird","Drongo","Minivet","Warbler","Thrush","Babbler","Laughingthrush","Bulbul",
+  "Robin","Flycatcher","Cobra","Viper","Krait","Python","Monitor Lizard","Skink","Gecko",
+  "Turtle","Tortoise","Crocodile","Gharial","Frog","Toad","Salamander","Newt","Butterfly",
+  "Moth","Dragonfly","Damselfly","Beetle","Ant","Termite","Grasshopper","Carp","Catfish","Mahseer",
+];
+const PLANT_BASE_NAMES = [
+  "Oak","Pine","Cedar","Maple","Rhododendron","Primrose","Lily","Orchid","Iris","Jasmine",
+  "Rose","Bamboo","Palm","Fern","Moss","Neem","Peepal","Banyan","Mango","Teak",
+  "Sandalwood","Rosewood","Sal","Shisham","Deodar","Tulsi","Ashwagandha","Turmeric","Ginger",
+  "Cardamom","Pepper","Cinnamon","Clove","Nutmeg","Moringa","Amla","Bael","Jamun","Aonla",
+  "Karanj","Palash","Amaltash","Chandni","Raat","Gulmohar","Jacaranda","Tabebuia","Flamboyant",
+  "Willow","Walnut","Almond","Apricot","Tamarind","Gunja","Guggul","Sarpagandha","Punarnava",
+  "Shankhapushpi","Brahmi","Vetiver","Basil","Cumin","Fenugreek","Mustard","Sesame","Groundnut",
+];
+const REGIONS = [
+  "Indian","Asian","Bengal","Himalayan","Malabar","Kashmir","Assam","Gujarat",
+  "Rajasthan","Sikkim","Kerala","Tamil Nadu","Maharashtra","Orissa","Madhya Pradesh",
+  "Uttar Pradesh","Punjab","Goa","Chhattisgarh","Jharkhand","West Bengal","Andhra Pradesh",
+];
+const ANIMAL_GENERA = [
+  "Panthera","Elephas","Ursus","Vulpes","Canis","Felis","Rhinoceros","Bos","Gazella",
+  "Macaca","Semnopithecus","Trachypithecus","Presbytis","Pavo","Gallus","Lophura",
+  "Tragopan","Buceros","Anthracoceros","Python","Naja","Bungarus","Ophiophagus","Daboia",
+  "Hydrophis","Rana","Hoplobatrachus","Fejervarya","Polypedates","Rhacophorus",
+  "Papilio","Danaus","Atrophaneura","Graphium","Mycalesis","Labeo","Catla","Cirrhina",
+  "Tor","Puntius","Danio","Trichogaster","Cuon","Herpestes","Rousettus",
+  "Hipposideros","Pteropus","Hylobates","Nomascus","Symphalangus",
+];
+const PLANT_GENERA = [
+  "Ficus","Azadirachta","Terminalia","Syzygium","Psidium","Mangifera","Bambusa",
+  "Zingiber","Curcuma","Elettaria","Ocimum","Withania","Asparagus","Glycine",
+  "Oryza","Triticum","Zea","Saccharum","Cocos","Areca","Phoenix","Caryota","Borassus",
+  "Artocarpus","Musa","Papaver","Cinchona","Coptis","Berberis","Nymphaea","Nelumbo",
+  "Typha","Cycus","Ginkgo","Acmella","Eclipta","Centella","Phyllanthus","Tinospora",
+  "Aristolochia","Adhatoda","Justicia","Catharanthus","Nerium","Calotropis","Moringa",
+];
+const FACTS = [
+  "Can survive in extreme temperatures","Known for unique behavioral patterns","Migrates seasonally",
+  "Highly adapted to its environment","Communicates using sophisticated signals","Social structure involves complex hierarchies",
+  "Has remarkable navigational abilities","Exhibits territorial behavior","Breeding season occurs during monsoon",
+  "Feeds on a diverse diet","Has been used in traditional medicine for centuries","Flowers bloom only during specific seasons",
+  "Can grow in diverse soil conditions","Exhibits remarkable drought resistance","Provides habitat for many smaller species",
+  "Plays a key role in soil conservation","Has deep root systems that prevent erosion","Attracts a variety of pollinators",
 ];
 
-const ecosystemData = [
-  {
-    name: "Tropical Forest",
-    description: "Dense forests with high biodiversity found in the Western Ghats and Northeast India.",
-    keySpecies: ["Bengal Tiger", "Indian Elephant", "King Cobra"],
-    zone: "Western Ghats",
-    majorThreats: ["Deforestation", "Poaching", "Climate Change"],
-  },
-  {
-    name: "Freshwater River",
-    description: "River systems including the Ganges, Brahmaputra, and their tributaries.",
-    keySpecies: ["Ganges River Dolphin", "Gharial", "Mahseer Fish"],
-    zone: "Indo-Gangetic Plain",
-    majorThreats: ["Pollution", "Damming", "Sand Mining"],
-  },
-  {
-    name: "Alpine Meadow",
-    description: "High-altitude grasslands and meadows in the Himalayan region.",
-    keySpecies: ["Snow Leopard", "Himalayan Tahr", "Red Panda"],
-    zone: "Himalayan",
-    majorThreats: ["Climate Change", "Overgrazing", "Tourism"],
-  },
-  {
-    name: "Grassland",
-    description: "Open grasslands and savannas found in central and peninsular India.",
-    keySpecies: ["Indian Peafowl", "Great Indian Bustard", "Blackbuck"],
-    zone: "Deccan Plateau",
-    majorThreats: ["Agricultural Expansion", "Invasive Species", "Drought"],
-  },
-];
-
-const zoneData = [
-  {
-    zoneName: "Himalayan",
-    statesCovered: ["Jammu & Kashmir", "Himachal Pradesh", "Uttarakhand", "Sikkim", "Arunachal Pradesh"],
-    keySpecies: ["Snow Leopard", "Red Panda", "Himalayan Black Bear"],
-    ecosystems: ["Alpine Meadow", "Temperate Forest", "Glacial"],
-    description: "The Himalayan zone covers the northern mountain ranges of India with extreme altitudinal variation.",
-  },
-  {
-    zoneName: "Indo-Gangetic Plain",
-    statesCovered: ["Punjab", "Haryana", "Uttar Pradesh", "Bihar", "West Bengal"],
-    keySpecies: ["Bengal Tiger", "Ganges River Dolphin", "One-Horned Rhino"],
-    ecosystems: ["Tropical Forest", "Freshwater River", "Wetland"],
-    description: "The fertile plains of northern India, home to the Ganges river system and dense human populations.",
-  },
-  {
-    zoneName: "Western Ghats",
-    statesCovered: ["Kerala", "Karnataka", "Tamil Nadu", "Maharashtra", "Goa"],
-    keySpecies: ["Indian Elephant", "Tiger", "Lion-tailed Macaque"],
-    ecosystems: ["Tropical Forest", "Shola Forest", "Montane Grassland"],
-    description: "UNESCO World Heritage site, one of the eight hottest biodiversity hotspots in the world.",
-  },
-  {
-    zoneName: "Deccan Plateau",
-    statesCovered: ["Telangana", "Andhra Pradesh", "Maharashtra", "Karnataka"],
-    keySpecies: ["Indian Peafowl", "Sloth Bear", "Indian Wolf"],
-    ecosystems: ["Grassland", "Dry Deciduous Forest", "Scrubland"],
-    description: "The large plateau region of central and southern India with diverse dry ecosystems.",
-  },
-  {
-    zoneName: "Thar Desert",
-    statesCovered: ["Rajasthan", "Gujarat"],
-    keySpecies: ["Great Indian Bustard", "Indian Wild Ass", "Desert Fox"],
-    ecosystems: ["Desert", "Grassland", "Salt Marsh"],
-    description: "The world's 17th largest desert, home to unique desert-adapted wildlife.",
-  },
-];
-
-const quizData = [
-  {
-    question: "Which is the national animal of India?",
-    options: ["Lion", "Bengal Tiger", "Elephant", "Snow Leopard"],
-    correctAnswer: 1,
-    category: "Species",
-    difficulty: "Easy",
-  },
-  {
-    question: "What is the conservation status of the Great Indian Bustard?",
-    options: ["Vulnerable", "Endangered", "Critically Endangered", "Near Threatened"],
-    correctAnswer: 2,
-    category: "Conservation",
-    difficulty: "Medium",
-  },
-  {
-    question: "The Ganges River Dolphin is the national aquatic animal of which country?",
-    options: ["Bangladesh", "Nepal", "India", "Pakistan"],
-    correctAnswer: 2,
-    category: "Species",
-    difficulty: "Easy",
-  },
-  {
-    question: "Which biogeographical zone of India is a UNESCO World Heritage Site?",
-    options: ["Himalayan Zone", "Thar Desert", "Western Ghats", "Deccan Plateau"],
-    correctAnswer: 2,
-    category: "Zone",
-    difficulty: "Medium",
-  },
-  {
-    question: "What primary threat does the Snow Leopard face?",
-    options: ["Poaching only", "Climate Change & Habitat Loss", "Pollution", "Invasive Species"],
-    correctAnswer: 1,
-    category: "Conservation",
-    difficulty: "Medium",
-  },
-];
-
-const seedDatabase = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ Connected to MongoDB for seeding...");
-
-    // Clear existing data
-    await Promise.all([
-      Species.deleteMany(),
-      Ecosystem.deleteMany(),
-      Zone.deleteMany(),
-      QuizQuestion.deleteMany(),
-    ]);
-    console.log("🗑️  Cleared existing data");
-
-    // Insert seed data
-    await Species.insertMany(speciesData);
-    console.log(`✅ Seeded ${speciesData.length} species`);
-
-    await Ecosystem.insertMany(ecosystemData);
-    console.log(`✅ Seeded ${ecosystemData.length} ecosystems`);
-
-    await Zone.insertMany(zoneData);
-    console.log(`✅ Seeded ${zoneData.length} zones`);
-
-    await QuizQuestion.insertMany(quizData);
-    console.log(`✅ Seeded ${quizData.length} quiz questions`);
-
-    // Create default admin user
-    const existingAdmin = await User.findOne({ email: "admin@biodiversity.com" });
-    if (!existingAdmin) {
-      await User.create({
-        name: "Admin",
-        email: "admin@biodiversity.com",
-        password: "Admin@123",
-        role: "admin",
-      });
-      console.log("✅ Created admin user: admin@biodiversity.com / Admin@123");
-    }
-
-    console.log("\n🌿 Database seeded successfully!");
-    process.exit(0);
-  } catch (error) {
-    console.error("❌ Seeding error:", error.message);
-    process.exit(1);
-  }
+// ─── Helpers ──────────────────────────────────────────────────
+let _counter = Date.now();
+const uid  = () => ++_counter;
+const ri   = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const rf   = (a, b) => parseFloat((Math.random() * (b - a) + a).toFixed(4));
+const pick = (arr, n) => {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
 };
 
-seedDatabase();
+// Deterministic index-based picks — guarantees uniqueness across 1200 iterations
+// because each pool has ≥120 elements and we cycle through with different offsets
+const detZone       = (i) => ZONES[i % ZONES.length];
+const detEco        = (i) => ECOSYSTEMS[i % ECOSYSTEMS.length];
+const detStatus     = (i) => STATUSES[i % STATUSES.length];
+const detHabitat    = (i) => HABITATS[i % HABITATS.length];
+const detAnimalType = (i) => ANIMAL_TYPES[i % ANIMAL_TYPES.length];
+const detPlantType  = (i) => PLANT_TYPES[i % PLANT_TYPES.length];
+const detRegion     = (i) => REGIONS[i % REGIONS.length];
+const detAnimalGen  = (i) => ANIMAL_GENERA[i % ANIMAL_GENERA.length];
+const detPlantGen   = (i) => PLANT_GENERA[i % PLANT_GENERA.length];
+const detAnimalName = (i) => `${REGIONS[i % REGIONS.length]} ${ANIMAL_BASE_NAMES[i % ANIMAL_BASE_NAMES.length]}`;
+const detPlantName  = (i) => `${REGIONS[i % REGIONS.length]} ${PLANT_BASE_NAMES[i % PLANT_BASE_NAMES.length]}`;
+
+// ─── Build animal record ──────────────────────────────────────
+function makeAnimal(i) {
+  const zone     = detZone(i);
+  const ecosystem = detEco(i);
+  const status    = detStatus(i);
+  const habitat   = detHabitat(i);
+  const animalType = detAnimalType(i);
+  const genus      = detAnimalGen(i);
+  const name       = detAnimalName(i);
+
+  return {
+    name,
+    scientificName: `${genus}_animal_${uid()}`,
+    type: animalType,
+    zone,
+    ecosystem,
+    population: ri(50, 50000),
+    habitatLoss: ri(10, 95),
+    pollutionLevel: ri(5, 80),
+    climateRisk: ri(10, 90),
+    conservationStatus: status,
+    description: `${name} is found across the ${zone}, inhabiting ${habitat.toLowerCase()}. It plays a key role in the ${ecosystem.toLowerCase()} ecosystem.`,
+    habitat,
+    threats: pick(THREATS, ri(1, 3)),
+    funFacts: pick(FACTS, ri(2, 4)),
+    coordinates: { lat: rf(8, 35), lng: rf(68, 97), locationName: `${zone}, India` },
+    imageUrl: "",
+    image: "",
+    images: [],
+    featureVector: { ecosystemCode: ri(0, 10), statusCode: ri(0, 5), typeCode: ri(0, 7), zoneCode: ri(0, 9) },
+  };
+}
+
+// ─── Build plant record ───────────────────────────────────────
+function makePlant(i) {
+  const zone     = detZone(i);
+  const ecosystem = detEco(i);
+  const status    = detStatus(i);
+  const habitat   = detHabitat(i);
+  const plantType = detPlantType(i);
+  const genus     = detPlantGen(i);
+  const name      = detPlantName(i);
+
+  return {
+    name,
+    scientificName: `${genus}_plant_${uid()}`,
+    type: plantType,
+    zone,
+    ecosystem,
+    conservationStatus: status,
+    description: `${name} is a ${plantType.toLowerCase()} native to ${zone}, commonly found in ${ecosystem.toLowerCase()}.`,
+    habitat,
+    uses: pick(USES, ri(1, 4)),
+    funFacts: pick(FACTS, ri(2, 4)),
+    coordinates: { lat: rf(8, 35), lng: rf(68, 97), locationName: `${zone}, India` },
+    imageUrl: "",
+    images: [],
+  };
+}
+
+// ─── Run ──────────────────────────────────────────────────────
+const seed = async () => {
+  console.log("🌱 India Biodiversity Explorer — Seeder");
+  console.log("═".repeat(48));
+
+  await mongoose.connect(MONGO_URI);
+  console.log("✅ MongoDB connected\n");
+
+  // Clear existing data
+  const [beforeA, beforeP] = await Promise.all([
+    Species.countDocuments(),
+    Plant.countDocuments(),
+  ]);
+  console.log(`🗑️  Clearing existing data (Species: ${beforeA}, Plant: ${beforeP})...`);
+  await Promise.all([Species.deleteMany({}), Plant.deleteMany({})]);
+
+  // ── Insert animals one-by-one ──────────────────────────────
+  console.log("\n🐾 Inserting 1200 animals into Species collection...");
+  let animalSuccess = 0;
+  let animalFailed = 0;
+  for (let i = 0; i < 1200; i++) {
+    try {
+      await Species.create(makeAnimal(i));
+      animalSuccess++;
+    } catch (e) {
+      animalFailed++;
+      if (animalFailed <= 5) console.log(`   ⚠️  Animal[${i}] failed: ${e.message}`);
+    }
+    if ((i + 1) % 200 === 0) process.stdout.write(`   Progress: ${i + 1}/1200\r`);
+  }
+  console.log(`\n   ✅ Animals inserted: ${animalSuccess}  |  ❌ Failed: ${animalFailed}`);
+
+  // ── Insert plants one-by-one ──────────────────────────────
+  console.log("\n🌿 Inserting 1200 plants into Plant collection...");
+  let plantSuccess = 0;
+  let plantFailed = 0;
+  for (let i = 0; i < 1200; i++) {
+    try {
+      await Plant.create(makePlant(i));
+      plantSuccess++;
+    } catch (e) {
+      plantFailed++;
+      if (plantFailed <= 5) console.log(`   ⚠️  Plant[${i}] failed: ${e.message}`);
+    }
+    if ((i + 1) % 200 === 0) process.stdout.write(`   Progress: ${i + 1}/1200\r`);
+  }
+  console.log(`\n   ✅ Plants inserted: ${plantSuccess}  |  ❌ Failed: ${plantFailed}`);
+
+  // ── Final report ──────────────────────────────────────────
+  const [animalCount, plantCount] = await Promise.all([
+    Species.countDocuments(),
+    Plant.countDocuments(),
+  ]);
+
+  console.log(`\n🎉 Seeding complete!`);
+  console.log(`   Animals (Species): ${animalCount} | expected 1200`);
+  console.log(`   Plants (Plant):    ${plantCount} | expected 1200`);
+  console.log(`   Total:             ${animalCount + plantCount}`);
+
+  await mongoose.disconnect();
+  process.exit(0);
+};
+
+seed().catch((err) => {
+  console.error("\n❌ Fatal error:", err.message);
+  process.exit(1);
+});
+
+// ─── Export data pools for /api/seed endpoint ─────────────────
+module.exports = { ZONES, ECOSYSTEMS };

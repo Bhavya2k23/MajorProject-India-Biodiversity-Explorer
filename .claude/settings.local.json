@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(find . -name \"*.js\" -exec grep -l \"ANIMALS\\\\|PLANTS\" {} \\\\;)",
+      "mcp__ide__getDiagnostics",
+      "Bash(node -e \"require\\('./controllers/speciesController.js'\\); require\\('./controllers/plantController.js'\\); require\\('./controllers/searchController.js'\\); require\\('./controllers/chatbotController.js'\\); require\\('./controllers/quizController.js'\\); require\\('./controllers/adminController.js'\\); require\\('./controllers/recommendationController.js'\\); require\\('./controllers/leaderboardController.js'\\); require\\('./controllers/imageRecognitionController.js'\\); require\\('./controllers/externalDataController.js'\\); console.log\\('All controllers loaded OK'\\)\")",
+      "Bash(node -e \"require\\('mongoose'\\); mongoose.connect\\(process.env.MONGODB_URI || 'mongodb://localhost:27017/biodiversity-explorer'\\).then\\(\\(\\) => console.log\\('MongoDB OK'\\)\\).catch\\(e => console.log\\('MongoDB:', e.message\\)\\)\")",
+      "Bash(node --check scripts/seedData.js)",
+      "Bash(node scripts/seedData.js)",
+      "Bash(MONGO_URI=\"mongodb+srv://biodiversityUser:Biodiversity123@cluster0.9fjypkc.mongodb.net/biodiversity_db?retryWrites=true&w=majority\" node scripts/seedData.js)",
+      "Bash(node -e ':*)",
+      "Bash(node server.js)",
+      "Bash(curl:*)",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(netstat -ano)",
+      "Bash(PORT=5001 node server.js)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(node -e \"const d = require\\('./scripts/seedData'\\); console.log\\('Exports:', Object.keys\\(d\\)\\); console.log\\('ZONES:', Array.isArray\\(d.ZONES\\), d.ZONES?.length\\); console.log\\('ANIMALS:', typeof d.ANIMALS\\); console.log\\('PLANTS:', typeof d.PLANTS\\);\")",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('Total animals:', j.total, '| Sample:', j.data[0]?.name\\)\")",
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('Total plants:', j.total, '| Sample:', j.data[0]?.name\\)\")"
+    ]
+  }
+}

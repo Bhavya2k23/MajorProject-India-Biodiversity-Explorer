@@ -37,9 +37,19 @@ exports.predictStatus = async (req, res, next) => {
     };
 
     // Try Python ML model first
-    const pythonScriptPath = path.join(__dirname, "../ml/predict.py");
+    // NOTE: On Windows use 'python'; on Linux/macOS use 'python3'
+    const pythonCmd = process.platform === "win32" ? "python" : "python3";
+    const pythonScriptPath = path.join(__dirname, "../services/predict.py");
 
-    const python = spawn("python3", [pythonScriptPath, JSON.stringify(inputData)]);
+    let responded = false;
+    const respondOnce = (data) => {
+      if (!responded) {
+        responded = true;
+        return res.status(200).json(data);
+      }
+    };
+
+    const python = spawn(pythonCmd, [pythonScriptPath, JSON.stringify(inputData)]);
 
     let pythonOutput = "";
     let pythonError = "";
@@ -47,24 +57,40 @@ exports.predictStatus = async (req, res, next) => {
     python.stdout.on("data", (data) => { pythonOutput += data.toString(); });
     python.stderr.on("data", (data) => { pythonError += data.toString(); });
 
+    // Safety timeout — if Python doesn't respond in 15s, fall back to rule-based
+    const timeout = setTimeout(() => {
+      if (!responded) {
+        python.kill();
+        const prediction = ruleBasedPrediction(inputData);
+        respondOnce({
+          success: true,
+          input: inputData,
+          prediction,
+          model: "Rule-Based (Timeout)",
+        });
+      }
+    }, 15000);
+
     python.on("close", (code) => {
+      clearTimeout(timeout);
+      if (responded) return;
       if (code === 0 && pythonOutput) {
         try {
           const prediction = JSON.parse(pythonOutput.trim());
-          return res.status(200).json({
+          respondOnce({
             success: true,
             input: inputData,
             prediction,
             model: "ML (Decision Tree)",
           });
+          return;
         } catch {
           // Fall through to rule-based
         }
       }
-
       // Fallback to rule-based prediction
       const prediction = ruleBasedPrediction(inputData);
-      return res.status(200).json({
+      respondOnce({
         success: true,
         input: inputData,
         prediction,
@@ -73,9 +99,10 @@ exports.predictStatus = async (req, res, next) => {
     });
 
     python.on("error", () => {
-      // Python not available - use rule-based
+      clearTimeout(timeout);
+      if (responded) return;
       const prediction = ruleBasedPrediction(inputData);
-      return res.status(200).json({
+      respondOnce({
         success: true,
         input: inputData,
         prediction,

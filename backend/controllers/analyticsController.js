@@ -1,69 +1,77 @@
 const Species = require("../models/Species");
+const Plant = require("../models/Plant");
 const User = require("../models/User");
 const Zone = require("../models/Zone");
 const Ecosystem = require("../models/Ecosystem");
 
-// @desc    Get full analytics dashboard data
-// @route   GET /api/analytics
-// @access  Admin
-exports.getDashboardAnalytics = async (req, res, next) => {
+// Helper to generate domain specific distributions securely.
+const getDomainInsights = async (Model) => {
+  const [
+    totalCount,
+    totalZones,
+    endangeredCount,
+    totalEcosystems,
+    zoneDistribution,
+    conservationStatusDist,
+    ecosystemDistribution,
+  ] = await Promise.all([
+    Model.countDocuments(),
+    Model.distinct("zone").then((z) => z.length),
+    Model.countDocuments({
+      conservationStatus: { $in: ["Endangered", "Critically Endangered"] },
+    }),
+    Model.distinct("ecosystem").then((e) => e.length),
+
+    Model.aggregate([
+      { $group: { _id: "$zone", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $project: { zone: "$_id", count: 1, _id: 0 } },
+    ]),
+
+    Model.aggregate([
+      { $group: { _id: "$conservationStatus", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $project: { status: "$_id", count: 1, _id: 0 } },
+    ]),
+
+    Model.aggregate([
+      { $group: { _id: "$ecosystem", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $project: { ecosystem: "$_id", count: 1, _id: 0 } },
+    ]),
+  ]);
+
+  const topZone = zoneDistribution[0]?.zone || "N/A";
+  const criticalCount = conservationStatusDist
+    .filter((s) => ["Endangered", "Critically Endangered"].includes(s.status))
+    .reduce((acc, s) => acc + s.count, 0);
+  const topEcosystem = ecosystemDistribution[0]?.ecosystem || "N/A";
+
+  const keyInsights = [
+    `The ${topZone} zone hosts the highest diversity in our database`,
+    `${criticalCount} species require immediate conservation action`,
+    `${topEcosystem} support the largest number of documented species`,
+  ];
+
+  return {
+    summary: { totalSpecies: totalCount, totalZones, endangeredCount, totalEcosystems },
+    zoneDistribution,
+    conservationStatusDist,
+    ecosystemDistribution,
+    keyInsights,
+  };
+};
+
+exports.getBiodiversityInsights = async (req, res, next) => {
   try {
-    const [
-      totalSpecies,
-      endangeredCount,
-      totalUsers,
-      totalZones,
-      totalEcosystems,
-      zoneDistribution,
-      conservationStatusDist,
-      typeDistribution,
-      recentSpecies,
-    ] = await Promise.all([
-      Species.countDocuments(),
-      Species.countDocuments({ conservationStatus: { $in: ["Endangered", "Critically Endangered"] } }),
-      User.countDocuments({ role: "user" }),
-      Zone.countDocuments(),
-      Ecosystem.countDocuments(),
-
-      // Zone-wise species count
-      Species.aggregate([
-        { $group: { _id: "$zone", count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $project: { zone: "$_id", count: 1, _id: 0 } },
-      ]),
-
-      // Conservation status distribution
-      Species.aggregate([
-        { $group: { _id: "$conservationStatus", count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $project: { status: "$_id", count: 1, _id: 0 } },
-      ]),
-
-      // Type distribution
-      Species.aggregate([
-        { $group: { _id: "$type", count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $project: { type: "$_id", count: 1, _id: 0 } },
-      ]),
-
-      // Recently added species
-      Species.find().sort({ createdAt: -1 }).limit(5).select("name conservationStatus type createdAt"),
-    ]);
+    const animals = await getDomainInsights(Species);
+    const plants = await getDomainInsights(Plant);
 
     res.status(200).json({
       success: true,
       data: {
-        summary: {
-          totalSpecies,
-          endangeredCount,
-          totalUsers,
-          totalZones,
-          totalEcosystems,
-        },
-        zoneDistribution,
-        conservationStatusDist,
-        typeDistribution,
-        recentSpecies,
+        animals,
+        plants
       },
     });
   } catch (error) {
@@ -71,9 +79,24 @@ exports.getDashboardAnalytics = async (req, res, next) => {
   }
 };
 
-// @desc    Get ecosystem statistics
-// @route   GET /api/analytics/ecosystems
-// @access  Public
+exports.getDashboardAnalytics = async (req, res, next) => {
+  try {
+    // Admin dashboard can combine them or stick to animals for now.
+    const animalData = await getDomainInsights(Species);
+    const totalUsers = await User.countDocuments({ role: "user" });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ...animalData,
+        summary: { ...animalData.summary, totalUsers },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getEcosystemStats = async (req, res, next) => {
   try {
     const stats = await Species.aggregate([
@@ -99,9 +122,6 @@ exports.getEcosystemStats = async (req, res, next) => {
   }
 };
 
-// @desc    Admin - View all users
-// @route   GET /api/analytics/users
-// @access  Admin
 exports.getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });

@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 
 // Generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, process.env.JWT_SECRET || "default_jwt_secret_fallback_key", {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };

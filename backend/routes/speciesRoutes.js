@@ -11,14 +11,32 @@ const {
 const { protect, adminOnly } = require("../middleware/auth");
 const { speciesRules, validate } = require("../middleware/validation");
 
+const upload = require("../middleware/upload");
+
 // Public routes
 router.get("/", getAllSpecies);
 router.get("/recommendations/:id", getRecommendations);
 router.get("/:id", getSpeciesById);
 
 // Admin protected routes
-router.post("/", protect, adminOnly, speciesRules, validate, createSpecies);
-router.put("/:id", protect, adminOnly, updateSpecies);
+router.post(
+  "/",
+  protect,
+  adminOnly,
+  upload.array("images", 5),
+  speciesRules,
+  validate,
+  createSpecies
+);
+router.put(
+  "/:id",
+  protect,
+  adminOnly,
+  upload.array("images", 5),
+  updateSpecies
+);
+
+// FIX: DELETE route was defined in controller but never registered — caused silent 404s
 router.delete("/:id", protect, adminOnly, deleteSpecies);
 
 module.exports = router;
