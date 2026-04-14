@@ -18,7 +18,9 @@
       "Bash(taskkill //F //IM node.exe)",
       "Bash(node -e \"const d = require\\('./scripts/seedData'\\); console.log\\('Exports:', Object.keys\\(d\\)\\); console.log\\('ZONES:', Array.isArray\\(d.ZONES\\), d.ZONES?.length\\); console.log\\('ANIMALS:', typeof d.ANIMALS\\); console.log\\('PLANTS:', typeof d.PLANTS\\);\")",
       "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('Total animals:', j.total, '| Sample:', j.data[0]?.name\\)\")",
-      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('Total plants:', j.total, '| Sample:', j.data[0]?.name\\)\")"
+      "Bash(node -e \"const d=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const j=JSON.parse\\(d\\); console.log\\('Total plants:', j.total, '| Sample:', j.data[0]?.name\\)\")",
+      "Bash(npm install:*)",
+      "Bash(node index.js)"
     ]
   }
 }

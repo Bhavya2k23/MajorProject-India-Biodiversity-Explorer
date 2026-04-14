@@ -322,7 +322,7 @@ function startServer(port, attempts = 0) {
   server.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
       console.warn(`⚠️  Port ${port} is in use — retrying in 1 second (attempt ${attempts + 1}/${MAX_PORT_ATTEMPTS})…`);
-      setTimeout(() => startServer(port, attempts + 1), 1000);
+      setTimeout(() => startServer(port + 1, attempts + 1), 1000);
     } else {
       console.error("❌ Server error:", err.message);
       process.exit(1);

@@ -6,7 +6,7 @@ const recommendationService = require("../services/recommendationService");
 // @access  Public
 exports.getAllSpecies = async (req, res, next) => {
   try {
-    const { zone, ecosystem, type, conservationStatus, sort, page = 1, limit = 10000, search } = req.query;
+    const { zone, ecosystem, type, conservationStatus, sort, page = 1, limit = 500, search } = req.query;
 
     const filter = {};
     if (zone) filter.zone = { $regex: zone, $options: "i" };
