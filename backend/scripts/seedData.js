@@ -85,6 +85,345 @@ const FACTS = [
   "Plays a key role in soil conservation","Has deep root systems that prevent erosion","Attracts a variety of pollinators",
 ];
 
+// ─── Real Image URLs (Wikimedia Commons — Indian Wildlife) ───
+const ANIMAL_IMAGES = {
+  Tiger: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Walking_tiger_female_crop.jpg/1200px-Walking_tiger_female_crop.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Bengal_Tiger_in_Kanha_National_Park.jpg/1200px-Bengal_Tiger_in_Kanha_National_Park.jpg",
+  ],
+  Leopard: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/38/Leopard_on_a_tree.jpg/800px-Leopard_on_a_tree.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Panthera_pardus_fusca.jpg/800px-Panthera_pardus_fusca.jpg",
+  ],
+  Elephant: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/37/Asian_Elephant_at_the_Kanha_National_Park.jpg/1200px-Asian_Elephant_at_the_Kanha_National_Park.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Elephant_at_Eden.jpg/800px-Elephant_at_Eden.jpg",
+  ],
+  Bear: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Sloth_Bear_Melursus_ursinus.jpg/800px-Sloth_Bear_Melursus_ursinus.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Himalayan_black_bear.jpg/800px-Himalayan_black_bear.jpg",
+  ],
+  Fox: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Indian_Fox.jpg/800px-Indian_Fox.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Vulpes_bengalensis.jpg/800px-Vulpes_bengalensis.jpg",
+  ],
+  Jackal: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9f/Canis_aureus_indicus.jpg/800px-Canis_aureus_indicus.jpg",
+  ],
+  Hare: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Indian_Hare.jpg/800px-Indian_Hare.jpg",
+  ],
+  Squirrel: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Indian_Giant_Squirrel.jpg/800px-Indian_Giant_Squirrel.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Five-striped_palm_squirrel.jpg/800px-Five-striped_palm_squirrel.jpg",
+  ],
+  Otter: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Aonyx_congretans.jpg/800px-Aonyx_congretans.jpg",
+  ],
+  Mongoose: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Common_Mongoose.jpg/800px-Common_Mongoose.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Indian_Grey_Mongoose.jpg/800px-Indian_Grey_Mongoose.jpg",
+  ],
+  Civet: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Paradoxurus_hermaphroditus.jpg/800px-Paradoxurus_hermaphroditus.jpg",
+  ],
+  Pangolin: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Indian_Pangolin.jpg/800px-Indian_Pangolin.jpg",
+  ],
+  Porcupine: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e2/Indian_Porcupine.jpg/800px-Indian_Porcupine.jpg",
+  ],
+  "Wild Dog": [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Dhole.jpg/800px-Dhole.jpg",
+  ],
+  Wolf: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Indian_Wolf.jpg/800px-Indian_Wolf.jpg",
+  ],
+  Hyena: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Striped_hyena.jpg/800px-Striped_hyena.jpg",
+  ],
+  Lion: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Gir_Lion.jpg/1200px-Gir_Lion.jpg",
+  ],
+  Peacock: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/74/Peacock_India.jpg/1200px-Peacock_India.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Peacock_displaying.jpg/800px-Peacock_displaying.jpg",
+  ],
+  Parrot: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/30/Psittacula_cyanocephala_-Bhitarkanika_Crows_Island-8.jpg/800px-Psittacula_cyanocephala_-Bhitarkanika_Crows_Island-8.jpg",
+  ],
+  Woodpecker: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/DSC_5122_Darjeeling_Woodpecker.jpg/800px-DSC_5122_Darjeeling_Woodpecker.jpg",
+  ],
+  Owl: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Indian_Eagle_Owl.jpg/800px-Indian_Eagle_Owl.jpg",
+  ],
+  Eagle: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Golden_Eagle_n.flat_hill.jpg/800px-Golden_Eagle_n.flat_hill.jpg",
+  ],
+  Vulture: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Gyps_bengalensis_-Bharatpur-2.jpg/800px-Gyps_bengalensis_-Bharatpur-2.jpg",
+  ],
+  Hornbill: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Great_Hornbill_W_Germany_01.jpg/800px-Great_Hornbill_W_Germany_01.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Odonthornis_bicalcaratus_blythii.jpg/800px-Odonthornis_bicalcaratus_blythii.jpg",
+  ],
+  Stork: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Asian_Openbill.jpg/800px-Asian_Openbill.jpg",
+  ],
+  Heron: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Great_Egret_%28Casmerodius_albus%29.jpg/800px-Great_Egret_%28Casmerodius_albus%29.jpg",
+  ],
+  Ibis: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Threskiornis_aethiopicus_-_Shoebil.jpg/800px-Threskiornis_aethiopicus_-_Shoebil.jpg",
+  ],
+  Swan: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Pmute_cygnus.jpg/800px-Pmute_cygnus.jpg",
+  ],
+  Duck: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Anas_poecilorhyncha.jpg/800px-Anas_poecilorhyncha.jpg",
+  ],
+  Kingfisher: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Alcedo_atthis_-_Dhanurasri.jpg/800px-Alcedo_atthis_-_Dhanurasri.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Pied_Kingfisher_I_M.jpg/800px-Pied_Kingfisher_I_M.jpg",
+  ],
+  Cobra: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Naja_naja.jpg/800px-Naja_naja.jpg",
+  ],
+  Viper: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Russells_viper.jpg/800px-Russells_viper.jpg",
+  ],
+  Krait: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Bungarus_caeruleus.jpg/800px-Bungarus_caeruleus.jpg",
+  ],
+  Python: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Python_molurus.jpg/800px-Python_molurus.jpg",
+  ],
+  Crocodile: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Mugger_Crocodile.jpg/1200px-Mugger_Crocodile.jpg",
+  ],
+  Gharial: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Gharial_Sanjay_Thapare.jpg/800px-Gharial_Sanjay_Thapare.jpg",
+  ],
+  Turtle: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Star_tortoise.jpg/800px-Star_tortoise.jpg",
+  ],
+  Tortoise: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Star_tortoise_geochelone_elegans.jpg/800px-Star_tortoise_geochelone_elegans.jpg",
+  ],
+  Frog: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/68/Eastern_iod_frog.jpg/800px-Eastern_iod_frog.jpg",
+  ],
+  Toad: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Common_Indian_toad.jpg/800px-Common_Indian_toad.jpg",
+  ],
+  Butterfly: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Common_Indian_Crow.jpg/800px-Common_Indian_Crow.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Papilio_demoleon_2500px.jpg/800px-Papilio_demoleon_2500px.jpg",
+  ],
+  Moth: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Attacus_atlas.jpg/800px-Attacus_atlas.jpg",
+  ],
+  Dragonfly: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Anax_junius_3000ppx.jpg/800px-Anax_junius_3000ppx.jpg",
+  ],
+  Beetle: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Hermit_Beetle.jpg/800px-Hermit_Beetle.jpg",
+  ],
+  Carp: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Indian_Major_Carp.jpg/800px-Indian_Major_Carp.jpg",
+  ],
+  Mahseer: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Tor_tor.jpg/800px-Tor_tor.jpg",
+  ],
+};
+
+// Fallback images for animals without specific entries
+const ANIMAL_FALLBACK_IMAGES = [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Walking_tiger_female_crop.jpg/1200px-Walking_tiger_female_crop.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Bengal_Tiger_in_Kanha_National_Park.jpg/1200px-Bengal_Tiger_in_Kanha_National_Park.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Indian_Wildlife_-_Bison_%28Bos_gaurus%29_by_N._A._Nazeer.jpg/1200px-Indian_Wildlife_-_Bison_%28Bos_gaurus%29_by_N._A._Nazeer.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f5/Dhole.jpg/800px-Dhole.jpg",
+];
+
+// ─── Real Image URLs (Wikimedia Commons — Indian Plants) ───
+const PLANT_IMAGES = {
+  Oak: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Quercus_semecarpifolia.jpg/800px-Quercus_semecarpifolia.jpg",
+  ],
+  Pine: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Pinus_roxburghii_Himalayan.jpg/800px-Pinus_roxburghii_Himalayan.jpg",
+  ],
+  Cedar: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Cedrus_deodara_Growing_in_the_Valley_of_Flowers_National_Park.jpg/800px-Cedrus_deodara_Growing_in_the_Valley_of_Flowers_National_Park.jpg",
+  ],
+  Maple: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Acer_caf%C3%A9_3000ppi.jpg/800px-Acer_caf%C3%A9_3000ppi.jpg",
+  ],
+  Rhododendron: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Rhododendron_arboreum.jpg/800px-Rhododendron_arboreum.jpg",
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Rhododendron_arboreum_Sikkim.jpg/800px-Rhododendron_arboreum_Sikkim.jpg",
+  ],
+  Orchid: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d8/Dendrobium_nobile_-_Kew_Gardens.jpg/800px-Dendrobium_nobile_-_Kew_Gardens.jpg",
+  ],
+  Lily: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Lilium_acinum_0002.JPG/800px-Lilium_acinum_0002.JPG",
+  ],
+  Jasmine: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Jasminum_officinale_-_Kew_Gardens.jpg/800px-Jasminum_officinale_-_Kew_Gardens.jpg",
+  ],
+  Rose: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Rosa_%27_期望_%27_2019-05.jpg/800px-Rosa_%27_期望_%27_2019-05.jpg",
+  ],
+  Bamboo: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Bamboo_forest_in_Kerala.jpg/1200px-Bamboo_forest_in_Kerala.jpg",
+  ],
+  Palm: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Coconut_trees_in_Kerala.jpg/1200px-Coconut_trees_in_Kerala.jpg",
+  ],
+  Neem: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/4/44/Neem_Tree_in_India.jpg/800px-Neem_Tree_in_India.jpg",
+  ],
+  Peepal: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Ficus_religiosa_Peepal_Tree.jpg/800px-Ficus_religiosa_Peepal_Tree.jpg",
+  ],
+  Banyan: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f2/Banyan_tree_in_Kolkata.jpg/1200px-Banyan_tree_in_Kolkata.jpg",
+  ],
+  Mango: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Mangifera_indica_003.jpg/800px-Mangifera_indica_003.jpg",
+  ],
+  Teak: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Teak_Forest_in_India.jpg/1200px-Teak_Forest_in_India.jpg",
+  ],
+  Sandalwood: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Santalum_album_KR.jpg/800px-Santalum_album_KR.jpg",
+  ],
+  Tulsi: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Ocimum_tenuiflorum_11091.jpg/800px-Ocimum_tenuiflorum_11091.jpg",
+  ],
+  Ashwagandha: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/Withania_somnifera%2C_Kashmir.jpg/800px-Withania_somnifera%2C_Kashmir.jpg",
+  ],
+  Turmeric: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Curcuma_longa.jpg/800px-Curcuma_longa.jpg",
+  ],
+  Ginger: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Zingiber_officinale.jpg/800px-Zingiber_officinale.jpg",
+  ],
+  Moringa: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Moringa_oleifera.jpg/800px-Moringa_oleifera.jpg",
+  ],
+  Amla: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Phyllanthus_emblica.jpg/800px-Phyllanthus_emblica.jpg",
+  ],
+  Jamun: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Syzygium_cumini.jpg/800px-Syzygium_cumini.jpg",
+  ],
+  Tamarind: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/Tamarindus_india_08022012.jpg/800px-Tamarindus_india_08022012.jpg",
+  ],
+  Fern: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Pteris_vittata.jpg/800px-Pteris_vittata.jpg",
+  ],
+  Moss: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/Polytrichum_commune.jpg/800px-Polytrichum_commune.jpg",
+  ],
+  Deodar: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/26/Cedrus_deodara_Growing_in_the_Valley_of_Flowers_National_Park.jpg/800px-Cedrus_deodara_Growing_in_the_Valley_of_Flowers_National_Park.jpg",
+  ],
+  Shisham: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Dalbergia_sissoides.jpg/800px-Dalbergia_sissoides.jpg",
+  ],
+  Sal: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c9/Shorea_robusta_forest.jpg/1200px-Shorea_robusta_forest.jpg",
+  ],
+  Primrose: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Primula_vulgaris_%28primrose%29.jpg/800px-Primula_vulgaris_%28primrose%29.jpg",
+  ],
+  Iris: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Iris_germanica_%28K%C3%B6nigliche_Gärtnerei_Erfurt%29.jpg/800px-Iris_germanica_%28K%C3%B6nigliche_G%C3%A4rtnerei_Erfurt%29.jpg",
+  ],
+  Cardamom: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Elettaria_cardamomum.jpg/800px-Elettaria_cardamomum.jpg",
+  ],
+  Pepper: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b7/Piper_nigrum_-_K%C3%B6hler%27s_Medizinal-Pflanzen-104.jpg/800px-Piper_nigrum_-_K%C3%B6hler%27s_Medizinal-Pflanzen-104.jpg",
+  ],
+  Cinnamon: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Ceylon_Cinnamon.jpg/800px-Ceylon_Cinnamon.jpg",
+  ],
+  Clove: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/6/65/Syzygium_aromaticum.jpg/800px-Syzygium_aromaticum.jpg",
+  ],
+  Nutmeg: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2b/Nutmeg.jpg/800px-Nutmeg.jpg",
+  ],
+  Bael: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Aegle_marmelos.jpg/800px-Aegle_marmelos.jpg",
+  ],
+  Gulmohar: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Del%C3%B6nix_regia%2C_Kew_Gardens.jpg/800px-Del%C3%B6nix_regia%2C_Kew_Gardens.jpg",
+  ],
+  Jacaranda: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Jacaranda_mimosifolia_at_UCT.jpg/800px-Jacaranda_mimosifolia_at_UCT.jpg",
+  ],
+  Willow: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Salix_babylonica.jpg/800px-Salix_babylonica.jpg",
+  ],
+  Apricot: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/34/Prunus_armeniaca.jpg/800px-Prunus_armeniaca.jpg",
+  ],
+  Almond: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Almond_03.jpg/800px-Almond_03.jpg",
+  ],
+  Basil: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7f/Ocimum_tenuiflorum_11091.jpg/800px-Ocimum_tenuiflorum_11091.jpg",
+  ],
+  Cumin: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Cuminum_cyminum_-_K%C3%B6hler%27s_Medizinal-Pflanzen-047.jpg/800px-Cuminum_cyminum_-_K%C3%B6hler%27s_Medizinal-Pflanzen-047.jpg",
+  ],
+  Fenugreek: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Illustration_Trigonella_foenum-graecum0.jpg/800px-Illustration_Trigonella_foenum-graecum0.jpg",
+  ],
+  Mustard: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Brassica_nigra_250px.jpg/800px-Brassica_nigra_250px.jpg",
+  ],
+  Sesame: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/b/be/Sesamum_indicum.jpg/800px-Sesamum_indicum.jpg",
+  ],
+  Groundnut: [
+    "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/Arachis_hypogaea.jpg/800px-Arachis_hypogaea.jpg",
+  ],
+};
+
+const PLANT_FALLBACK_IMAGES = [
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Forest_in_Kerala.jpg/1200px-Forest_in_Kerala.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f0/Ficus_religiosa_Peepal_Tree.jpg/800px-Ficus_religiosa_Peepal_Tree.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Aegle_marmelos.jpg/800px-Aegle_marmelos.jpg",
+];
+
+// Helper to get image URL for an animal based on base name
+const getAnimalImage = (baseName, i) => {
+  for (const [key, urls] of Object.entries(ANIMAL_IMAGES)) {
+    if (baseName.includes(key)) {
+      return urls[i % urls.length];
+    }
+  }
+  return ANIMAL_FALLBACK_IMAGES[i % ANIMAL_FALLBACK_IMAGES.length];
+};
+
+// Helper to get image URL for a plant based on base name
+const getPlantImage = (baseName, i) => {
+  for (const [key, urls] of Object.entries(PLANT_IMAGES)) {
+    if (baseName.includes(key)) {
+      return urls[i % urls.length];
+    }
+  }
+  return PLANT_FALLBACK_IMAGES[i % PLANT_FALLBACK_IMAGES.length];
+};
+
 // ─── Helpers ──────────────────────────────────────────────────
 let _counter = Date.now();
 const uid  = () => ++_counter;
@@ -118,6 +457,7 @@ function makeAnimal(i) {
   const animalType = detAnimalType(i);
   const genus      = detAnimalGen(i);
   const name       = detAnimalName(i);
+  const baseName   = ANIMAL_BASE_NAMES[i % ANIMAL_BASE_NAMES.length];
 
   return {
     name,
@@ -135,9 +475,9 @@ function makeAnimal(i) {
     threats: pick(THREATS, ri(1, 3)),
     funFacts: pick(FACTS, ri(2, 4)),
     coordinates: { lat: rf(8, 35), lng: rf(68, 97), locationName: `${zone}, India` },
-    imageUrl: "",
-    image: "",
-    images: [],
+    imageUrl: getAnimalImage(baseName, i),
+    image: getAnimalImage(baseName, i),
+    images: [getAnimalImage(baseName, i)],
     featureVector: { ecosystemCode: ri(0, 10), statusCode: ri(0, 5), typeCode: ri(0, 7), zoneCode: ri(0, 9) },
   };
 }
@@ -151,6 +491,7 @@ function makePlant(i) {
   const plantType = detPlantType(i);
   const genus     = detPlantGen(i);
   const name      = detPlantName(i);
+  const baseName  = PLANT_BASE_NAMES[i % PLANT_BASE_NAMES.length];
 
   return {
     name,
@@ -164,8 +505,8 @@ function makePlant(i) {
     uses: pick(USES, ri(1, 4)),
     funFacts: pick(FACTS, ri(2, 4)),
     coordinates: { lat: rf(8, 35), lng: rf(68, 97), locationName: `${zone}, India` },
-    imageUrl: "",
-    images: [],
+    imageUrl: getPlantImage(baseName, i),
+    images: [getPlantImage(baseName, i)],
   };
 }
 
