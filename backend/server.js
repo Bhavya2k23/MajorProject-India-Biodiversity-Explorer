@@ -137,6 +137,31 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // ─── Static file serving (uploaded images) ─────────────────────
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// ─── Cache headers for performance ──────────────────────────────
+// Cache static assets aggressively
+app.use(express.static(path.join(__dirname, "../india-s-wild-explorer/dist"), {
+  maxAge: "1d",
+  etag: true,
+}));
+
+// Cache API responses based on route type
+app.use("/api/animals", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=300"); // 5 min for species list
+  next();
+});
+app.use("/api/plants", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=300");
+  next();
+});
+app.use("/api/ecosystems", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=3600"); // 1 hour for ecosystems
+  next();
+});
+app.use("/api/zones", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=3600");
+  next();
+});
+
 // ─── HTTP logger (development only) ────────────────────────────
 if (morgan && process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
