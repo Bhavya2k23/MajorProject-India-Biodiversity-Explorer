@@ -36,6 +36,10 @@ const predictionHistorySchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    mockPrediction: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

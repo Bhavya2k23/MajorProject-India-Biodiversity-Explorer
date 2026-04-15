@@ -177,6 +177,7 @@ exports.recognizeSpecies = async (req, res, next) => {
           userId: req.user?._id || null,
           fileSize: req.file.size,
           processingTimeMs,
+          mockPrediction: true,  // Track that this was a mock/fallback prediction
         });
       } catch (dbErr) {
         console.error("[ImageRecognition] Failed to save history:", dbErr.message);
@@ -191,6 +192,7 @@ exports.recognizeSpecies = async (req, res, next) => {
           imageUrl,
           processingTimeMs,
           historyId: historyEntry?._id || null,
+          mockPrediction: true,  // Flag to indicate this is a demo prediction (AI service unavailable)
         },
       });
     }
@@ -209,6 +211,7 @@ exports.recognizeSpecies = async (req, res, next) => {
         userId: req.user?._id || null,
         fileSize: req.file.size,
         processingTimeMs,
+        mockPrediction: false,  // Real AI prediction
       });
     } catch (dbErr) {
       // Non-fatal: log but don't fail the request
@@ -224,6 +227,7 @@ exports.recognizeSpecies = async (req, res, next) => {
         imageUrl,
         processingTimeMs,
         historyId: historyEntry?._id || null,
+        mockPrediction: false,  // Indicate this is a real AI prediction
       },
     });
   } catch (err) {
