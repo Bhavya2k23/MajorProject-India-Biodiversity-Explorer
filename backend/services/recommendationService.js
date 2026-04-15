@@ -22,7 +22,7 @@ const Species = require("../models/Species");
 
 // Conservation status severity encoding (0 = safest, 6 = extinct)
 const STATUS_CODES = {
-  "Safe": 0,
+  "Least Concern": 0,
   "Near Threatened": 1,
   "Vulnerable": 2,
   "Endangered": 3,

@@ -52,7 +52,7 @@ const speciesSchema = new mongoose.Schema(
     },
     conservationStatus: {
       type: String,
-      enum: ["Least Concern", "Safe", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
+      enum: ["Least Concern", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
       required: true,
       default: "Least Concern"
     },
