@@ -45,6 +45,85 @@ const ANIMAL_BASE_NAMES = [
   "Turtle","Tortoise","Crocodile","Gharial","Frog","Toad","Salamander","Newt","Butterfly",
   "Moth","Dragonfly","Damselfly","Beetle","Ant","Termite","Grasshopper","Carp","Catfish","Mahseer",
 ];
+
+// Real scientific names (binomial nomenclature) for Indian wildlife
+const ANIMAL_SCIENTIFIC_NAMES = {
+  "Tiger": "Panthera tigris tigris",
+  "Leopard": "Panthera pardus fusca",
+  "Elephant": "Elephas maximus indicus",
+  "Bear": "Ursus thibetanus lanatus",
+  "Fox": "Vulpes bengalensis",
+  "Jackal": "Canis aureus indicus",
+  "Hare": "Lepus nigricollis",
+  "Squirrel": "Ratufa indica",
+  "Marten": "Martes flavigula",
+  "Otter": "Lutra lutra",
+  "Mongoose": "Herpestes smithii",
+  "Civet": "Viverricula indica",
+  "Pangolin": "Manis crassicaudata",
+  "Porcupine": "Hystrix indica",
+  "Wild Dog": "Cuon alpinus",
+  "Wolf": "Canis lupus pallipes",
+  "Hyena": "Hyaena hyaena",
+  "Lion": "Panthera leo persica",
+  "Peacock": "Pavo cristatus",
+  "Parrot": "Psittacula cyanocephala",
+  "Woodpecker": "Dryocopus javensis",
+  "Owl": "Bubo bengalensis",
+  "Eagle": "Aquila chrysaetos",
+  "Falcon": "Falco peregrinus",
+  "Vulture": "Gyps bengalensis",
+  "Pigeon": "Columba livia",
+  "Dove": "Streptopelia decaocto",
+  "Quail": "Coturnix coturnix",
+  "Pheasant": "Lophura nycthemera",
+  "Hornbill": "Buceros bicornis",
+  "Stork": "Ciconia episcopus",
+  "Heron": "Ardea cinerea",
+  "Ibis": "Threskiornis aethiopicus",
+  "Swan": "Cygnus cygnus",
+  "Duck": "Anas poecilorhyncha",
+  "Goose": "Anser anser",
+  "Pelican": "Pelecanus philippensis",
+  "Cormorant": "Phalacrocorax niger",
+  "Kingfisher": "Alcedo atthis",
+  "Sunbird": "Nectarinia zeylonica",
+  "Drongo": "Dicrurus macrocercus",
+  "Minivet": "Pericrocotus flammeus",
+  "Warbler": "Acrocephalus stentoreus",
+  "Thrush": "Zoothera dauma",
+  "Babbler": "Turdoides striata",
+  "Laughingthrush": "Garrulax leucogastroides",
+  "Bulbul": "Pycnonotus cafer",
+  "Robin": "Copsychus saularis",
+  "Flycatcher": "Muscicapa thalassina",
+  "Cobra": "Naja naja",
+  "Viper": "Daboia russelii",
+  "Krait": "Bungarus caeruleus",
+  "Python": "Python bivittatus",
+  "Monitor Lizard": "Varanus bengalensis",
+  "Skink": "Eutropis carinata",
+  "Gecko": "Hemidactylus frenatus",
+  "Turtle": "Geochelone elegans",
+  "Tortoise": "Testudo graeca",
+  "Crocodile": "Crocodylus palustris",
+  "Gharial": "Gavialis gangeticus",
+  "Frog": "Hoplobatrachus tigerinus",
+  "Toad": "Duttaphrynus melanostictus",
+  "Salamander": "Tylototriton verrucosus",
+  "Newt": "Cynops orientalis",
+  "Butterfly": "Papilio demoleus",
+  "Moth": "Attacus atlas",
+  "Dragonfly": "Anax junius",
+  "Damselfly": "Ischnura aurora",
+  "Beetle": "Chrysocoleus militaris",
+  "Ant": "Camponotus compressus",
+  "Termite": "Odontotermes obesus",
+  "Grasshopper": "Hieroglyphus banian",
+  "Carp": "Catla catla",
+  "Catfish": "Heteropneustes fossilis",
+  "Mahseer": "Tor tor",
+};
 const PLANT_BASE_NAMES = [
   "Oak","Pine","Cedar","Maple","Rhododendron","Primrose","Lily","Orchid","Iris","Jasmine",
   "Rose","Bamboo","Palm","Fern","Moss","Neem","Peepal","Banyan","Mango","Teak",
@@ -76,6 +155,60 @@ const PLANT_GENERA = [
   "Typha","Cycus","Ginkgo","Acmella","Eclipta","Centella","Phyllanthus","Tinospora",
   "Aristolochia","Adhatoda","Justicia","Catharanthus","Nerium","Calotropis","Moringa",
 ];
+
+// Real scientific names for Indian plants
+const PLANT_SCIENTIFIC_NAMES = {
+  "Oak": "Quercus semecarpifolia",
+  "Pine": "Pinus roxburghii",
+  "Cedar": "Cedrus deodara",
+  "Maple": "Acer palmatum",
+  "Rhododendron": "Rhododendron arboreum",
+  "Primrose": "Primula vulgaris",
+  "Lily": "Lilium lancifolium",
+  "Orchid": "Dendrobium nobile",
+  "Iris": "Iris germanica",
+  "Jasmine": "Jasminum officinale",
+  "Rose": "Rosa indica",
+  "Bamboo": "Bambusa balcooa",
+  "Palm": "Cocos nucifera",
+  "Fern": "Pteris vittata",
+  "Moss": "Polytrichum commune",
+  "Neem": "Azadirachta indica",
+  "Peepal": "Ficus religiosa",
+  "Banyan": "Ficus benghalensis",
+  "Mango": "Mangifera indica",
+  "Teak": "Tectona grandis",
+  "Sandalwood": "Santalum album",
+  "Tulsi": "Ocimum tenuiflorum",
+  "Ashwagandha": "Withania somnifera",
+  "Turmeric": "Curcuma longa",
+  "Ginger": "Zingiber officinale",
+  "Cardamom": "Elettaria cardamomum",
+  "Pepper": "Piper nigrum",
+  "Cinnamon": "Cinnamomum verum",
+  "Clove": "Syzygium aromaticum",
+  "Nutmeg": "Myristica fragrans",
+  "Moringa": "Moringa oleifera",
+  "Amla": "Phyllanthus emblica",
+  "Bael": "Aegle marmelos",
+  "Jamun": "Syzygium cumini",
+  "Tamarind": "Tamarindus indica",
+  "Fern": "Pteris vittata",
+  "Moss": "Bryum arginosum",
+  "Deodar": "Cedrus deodara",
+  "Shisham": "Dalbergia sissoo",
+  "Sal": "Shorea robusta",
+  "Willow": "Salix babylonica",
+  "Walnut": "Juglans regia",
+  "Almond": "Prunus dulcis",
+  "Apricot": "Prunus armeniaca",
+  "Basil": "Ocimum basilicum",
+  "Cumin": "Cuminum cyminum",
+  "Fenugreek": "Trigonella foenum-graecum",
+  "Mustard": "Brassica nigra",
+  "Sesame": "Sesamum indicum",
+  "Groundnut": "Arachis hypogaea",
+};
 const FACTS = [
   "Can survive in extreme temperatures","Known for unique behavioral patterns","Migrates seasonally",
   "Highly adapted to its environment","Communicates using sophisticated signals","Social structure involves complex hierarchies",
@@ -445,8 +578,16 @@ const detPlantType  = (i) => PLANT_TYPES[i % PLANT_TYPES.length];
 const detRegion     = (i) => REGIONS[i % REGIONS.length];
 const detAnimalGen  = (i) => ANIMAL_GENERA[i % ANIMAL_GENERA.length];
 const detPlantGen   = (i) => PLANT_GENERA[i % PLANT_GENERA.length];
-const detAnimalName = (i) => `${REGIONS[i % REGIONS.length]} ${ANIMAL_BASE_NAMES[i % ANIMAL_BASE_NAMES.length]}`;
-const detPlantName  = (i) => `${REGIONS[i % REGIONS.length]} ${PLANT_BASE_NAMES[i % PLANT_BASE_NAMES.length]}`;
+
+// FIXED: Use base names only (no region prefix) for proper common names
+const detAnimalName = (i) => ANIMAL_BASE_NAMES[i % ANIMAL_BASE_NAMES.length];
+const detPlantName  = (i) => PLANT_BASE_NAMES[i % PLANT_BASE_NAMES.length];
+
+// Get real scientific name from mapping
+const getAnimalScientificName = (i) => {
+  const baseName = ANIMAL_BASE_NAMES[i % ANIMAL_BASE_NAMES.length];
+  return ANIMAL_SCIENTIFIC_NAMES[baseName] || `${ANIMAL_GENERA[i % ANIMAL_GENERA.length]} ${baseName.toLowerCase()}`;
+};
 
 // ─── Build animal record ──────────────────────────────────────
 function makeAnimal(i) {
@@ -455,13 +596,13 @@ function makeAnimal(i) {
   const status    = detStatus(i);
   const habitat   = detHabitat(i);
   const animalType = detAnimalType(i);
-  const genus      = detAnimalGen(i);
-  const name       = detAnimalName(i);
+  const name       = detAnimalName(i);  // FIXED: Now uses base name only (e.g., "Tiger" not "Indian Tiger")
+  const scientificName = getAnimalScientificName(i);  // FIXED: Uses real binomial nomenclature
   const baseName   = ANIMAL_BASE_NAMES[i % ANIMAL_BASE_NAMES.length];
 
   return {
-    name,
-    scientificName: `${genus}_animal_${uid()}`,
+    name,  // common name - now properly just "Tiger" not "Indian Tiger"
+    scientificName,  // real scientific name - now properly "Panthera tigris tigris"
     type: animalType,
     zone,
     ecosystem,
@@ -482,6 +623,12 @@ function makeAnimal(i) {
   };
 }
 
+// Get real plant scientific name
+const getPlantScientificName = (i) => {
+  const baseName = PLANT_BASE_NAMES[i % PLANT_BASE_NAMES.length];
+  return PLANT_SCIENTIFIC_NAMES[baseName] || `${PLANT_GENERA[i % PLANT_GENERA.length]} ${baseName.toLowerCase()}`;
+};
+
 // ─── Build plant record ───────────────────────────────────────
 function makePlant(i) {
   const zone     = detZone(i);
@@ -489,13 +636,13 @@ function makePlant(i) {
   const status    = detStatus(i);
   const habitat   = detHabitat(i);
   const plantType = detPlantType(i);
-  const genus     = detPlantGen(i);
-  const name      = detPlantName(i);
+  const name      = detPlantName(i);  // FIXED: Now uses base name only
+  const scientificName = getPlantScientificName(i);  // FIXED: Uses real binomial nomenclature
   const baseName  = PLANT_BASE_NAMES[i % PLANT_BASE_NAMES.length];
 
   return {
-    name,
-    scientificName: `${genus}_plant_${uid()}`,
+    name,  // common name - now properly just "Neem" not "Indian Neem"
+    scientificName,  // real scientific name - now properly "Azadirachta indica"
     type: plantType,
     zone,
     ecosystem,

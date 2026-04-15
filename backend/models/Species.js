@@ -52,8 +52,9 @@ const speciesSchema = new mongoose.Schema(
     },
     conservationStatus: {
       type: String,
-      enum: ["Safe", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
+      enum: ["Least Concern", "Safe", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
       required: true,
+      default: "Least Concern"
     },
     description: {
       type: String,
@@ -70,10 +71,8 @@ const speciesSchema = new mongoose.Schema(
       lng: { type: Number, default: null },
       locationName: { type: String, default: "" },
     },
+    // CONSOLIDATED: Use imageUrl as primary field (removed duplicate 'image' field)
     imageUrl: {
-      type: String,
-    },
-    image: {
       type: String,
       default: "",
     },

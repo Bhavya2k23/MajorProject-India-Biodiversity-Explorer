@@ -29,8 +29,8 @@ const plantSchema = new mongoose.Schema(
     },
     conservationStatus: {
       type: String,
-      enum: ["Safe", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
-      default: "Safe"
+      enum: ["Least Concern", "Safe", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
+      default: "Least Concern"
     },
     description: {
       type: String,

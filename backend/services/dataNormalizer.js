@@ -13,7 +13,7 @@ const IUCN_STATUS_MAP = {
   EN: "Endangered",
   VU: "Vulnerable",
   NT: "Near Threatened",
-  LC: "Least Concern",
+  LC: "Least Concern",  // Added - was already here but model didn't have it
   DD: "Data Deficient",
   NE: "Not Evaluated",
 };
@@ -22,13 +22,14 @@ const IUCN_STATUS_MAP = {
  * Valid conservation status values
  */
 const VALID_CONSERVATION_STATUSES = [
-  "Extinct",
-  "Extinct in Wild",
-  "Critically Endangered",
-  "Endangered",
-  "Vulnerable",
-  "Near Threatened",
   "Least Concern",
+  "Safe",
+  "Near Threatened",
+  "Vulnerable",
+  "Endangered",
+  "Critically Endangered",
+  "Extinct in Wild",
+  "Extinct",
   "Data Deficient",
   "Not Evaluated",
   "Unknown",
