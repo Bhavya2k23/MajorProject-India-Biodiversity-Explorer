@@ -44,16 +44,20 @@ const handleApiError = (error, res, service) => {
     res.set("Retry-After", error.retryAfter || 60);
     return res.status(429).json({
       success: false,
+      source: service || "api",
+      data: null,
       error: "ApiRateLimitError",
       message: error.message,
       service: error.service,
-      retryAfter: error.retryAfter,
+      retryAfter: error.retryAfter || 60,
     });
   }
 
   if (error instanceof ApiAuthError) {
     return res.status(401).json({
       success: false,
+      source: service || "api",
+      data: null,
       error: "ApiAuthError",
       message: error.message,
       service: error.service,
@@ -63,6 +67,8 @@ const handleApiError = (error, res, service) => {
   if (error instanceof ApiNotFoundError) {
     return res.status(404).json({
       success: false,
+      source: service || "api",
+      data: null,
       error: "ApiNotFoundError",
       message: error.message,
       service: error.service,
@@ -72,6 +78,8 @@ const handleApiError = (error, res, service) => {
   if (error instanceof ApiServerError) {
     return res.status(502).json({
       success: false,
+      source: service || "api",
+      data: null,
       error: "ApiServerError",
       message: error.message,
       service: error.service,
@@ -81,6 +89,8 @@ const handleApiError = (error, res, service) => {
   if (error instanceof ApiError) {
     return res.status(error.statusCode || 500).json({
       success: false,
+      source: service || "api",
+      data: null,
       error: error.name,
       message: error.message,
       service: error.service,
@@ -90,6 +100,8 @@ const handleApiError = (error, res, service) => {
   // Unknown error
   return res.status(500).json({
     success: false,
+    source: service || "api",
+    data: null,
     error: "InternalServerError",
     message: "An unexpected error occurred",
   });
@@ -107,6 +119,8 @@ exports.searchGbifSpecies = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species name is required",
+        source: "gbif",
+        data: null,
       });
     }
 
@@ -115,9 +129,10 @@ exports.searchGbifSpecies = async (req, res) => {
 
     res.json({
       success: true,
+      source: "gbif",
       data: result.data,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "gbif");
@@ -136,6 +151,8 @@ exports.getGbifOccurrences = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species key is required",
+        source: "gbif",
+        data: null,
       });
     }
 
@@ -144,9 +161,10 @@ exports.getGbifOccurrences = async (req, res) => {
 
     res.json({
       success: true,
+      source: "gbif",
       data: result.data,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "gbif");
@@ -165,6 +183,8 @@ exports.getSpeciesByCountry = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Country code is required (e.g., IN for India)",
+        source: "gbif",
+        data: null,
       });
     }
 
@@ -173,9 +193,10 @@ exports.getSpeciesByCountry = async (req, res) => {
 
     res.json({
       success: true,
+      source: "gbif",
       data: result.data,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "gbif");
@@ -194,6 +215,8 @@ exports.getIucnStatus = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Taxonomy ID is required",
+        source: "iucn",
+        data: null,
       });
     }
 
@@ -212,9 +235,10 @@ exports.getIucnStatus = async (req, res) => {
 
     res.json({
       success: true,
+      source: "iucn",
       data: normalizedData,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "iucn");
@@ -233,6 +257,8 @@ exports.getCombinedSpeciesData = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species name is required",
+        source: "combined",
+        data: null,
       });
     }
 
@@ -241,10 +267,10 @@ exports.getCombinedSpeciesData = async (req, res) => {
 
     res.json({
       success: true,
+      source: result.source || "combined",
       data: result.data,
-      source: result.source,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "combined");
@@ -263,6 +289,8 @@ exports.getLiveSpeciesData = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species name is required",
+        source: "live",
+        data: null,
       });
     }
 
@@ -316,7 +344,6 @@ exports.getLiveSpeciesData = async (req, res) => {
       lastUpdated: new Date().toISOString(),
       gbifKey: gbifResult.data?.key || null,
       iucnCategory: iucnData?.category || null,
-      source: "live",
     };
 
     res.set("X-Cache", "MISS");
@@ -324,8 +351,8 @@ exports.getLiveSpeciesData = async (req, res) => {
 
     res.json({
       success: true,
-      data: combinedData,
       source: "live",
+      data: combinedData,
       cached: false,
     });
   } catch (error) {
@@ -346,6 +373,8 @@ exports.getSpeciesByName = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species name is required",
+        source: "combined",
+        data: null,
       });
     }
 
@@ -354,10 +383,10 @@ exports.getSpeciesByName = async (req, res) => {
 
     res.json({
       success: true,
+      source: result.source || "combined",
       data: result.data,
-      source: result.source,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "combined");
@@ -376,6 +405,8 @@ exports.getConservationStatus = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species key is required",
+        source: "gbif",
+        data: null,
       });
     }
 
@@ -385,6 +416,7 @@ exports.getConservationStatus = async (req, res) => {
     // Try to get IUCN data if taxonId provided
     let conservationStatus = "Unknown";
     let iucnCategory = null;
+    let source = "gbif";
 
     if (req.query.taxonId) {
       try {
@@ -392,6 +424,7 @@ exports.getConservationStatus = async (req, res) => {
         if (iucnResult.data?.category) {
           conservationStatus = normalizeConservationStatus(iucnResult.data.category);
           iucnCategory = iucnResult.data.category;
+          source = "iucn";
         }
       } catch (iucnError) {
         console.error(JSON.stringify({
@@ -407,15 +440,15 @@ exports.getConservationStatus = async (req, res) => {
 
     res.json({
       success: true,
+      source,
       data: {
         speciesKey: result.data?.key,
         scientificName: result.data?.scientificName,
         conservationStatus,
         iucnCategory,
-        source: iucnCategory ? "iucn" : "gbif",
       },
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "gbif");
@@ -435,6 +468,8 @@ exports.getOccurrenceMapData = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species key is required",
+        source: "gbif",
+        data: null,
       });
     }
 
@@ -452,10 +487,10 @@ exports.getOccurrenceMapData = async (req, res) => {
 
     res.json({
       success: true,
+      source: "gbif",
       data: mapData,
-      count: mapData.length,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "gbif");
@@ -475,6 +510,8 @@ exports.getSpeciesSummary = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Species name is required",
+        source: "combined",
+        data: null,
       });
     }
 
@@ -484,10 +521,10 @@ exports.getSpeciesSummary = async (req, res) => {
 
     res.json({
       success: true,
+      source: result.source || "combined",
       data: result.data,
-      source: result.source,
       cached: result.cache !== null,
-      cacheSource: result.cache,
+      cacheSource: result.cache || null,
     });
   } catch (error) {
     handleApiError(error, res, "combined");
