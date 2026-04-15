@@ -1,5 +1,74 @@
 const Species = require("../models/Species");
 const recommendationService = require("../services/recommendationService");
+const { getSpeciesImage, validateImageUrl } = require("../services/speciesImageService");
+
+// ─── Image Validation & Enrichment Helper ───────────────────────────────────
+// Validates imageUrl and fetches fresh image from multi-source fallback if invalid
+const validateAndFixImageUrl = async (species, skipValidation = false) => {
+  try {
+    // If imageUrl is empty, fetch fresh image immediately
+    if (!species.imageUrl || species.imageUrl.trim() === "") {
+      const freshImage = await getSpeciesImage(species.name, species.scientificName, species.type, false);
+      if (freshImage) {
+        species.imageUrl = freshImage.url;
+        species.images = [freshImage.url];
+        await species.save();
+      }
+      return;
+    }
+
+    // Optionally skip HEAD validation for performance (skipValidation=true means we're in a list endpoint)
+    if (skipValidation) return;
+
+    // Validate existing imageUrl with a quick HEAD request
+    const isValid = await validateImageUrl(species.imageUrl, 3000);
+    if (!isValid) {
+      console.log(`[SpeciesController] Image URL invalid for ${species.name}, fetching fresh image...`);
+      const freshImage = await getSpeciesImage(species.name, species.scientificName, species.type, false);
+      if (freshImage) {
+        species.imageUrl = freshImage.url;
+        species.images = [freshImage.url];
+        await species.save();
+      }
+    }
+  } catch (error) {
+    // Non-critical: log but don't fail the request
+    console.warn(`[SpeciesController] Image validation error for ${species?.name}:`, error.message);
+  }
+};
+
+// ─── Background image refresh for list endpoints ─────────────────────────────
+// Updates species images asynchronously after response is sent
+const refreshSpeciesImageInBackground = (species) => {
+  // Fire and forget - don't await
+  setImmediate(async () => {
+    try {
+      if (!species.imageUrl || species.imageUrl.trim() === "") {
+        const freshImage = await getSpeciesImage(species.name, species.scientificName, species.type, false);
+        if (freshImage) {
+          await Species.findByIdAndUpdate(species._id, {
+            imageUrl: freshImage.url,
+            images: [freshImage.url],
+          });
+        }
+        return;
+      }
+      // Check if image is valid
+      const isValid = await validateImageUrl(species.imageUrl, 3000);
+      if (!isValid) {
+        const freshImage = await getSpeciesImage(species.name, species.scientificName, species.type, false);
+        if (freshImage) {
+          await Species.findByIdAndUpdate(species._id, {
+            imageUrl: freshImage.url,
+            images: [freshImage.url],
+          });
+        }
+      }
+    } catch (error) {
+      console.warn(`[SpeciesController] Background image refresh failed for ${species?.name}:`, error.message);
+    }
+  });
+};
 
 // @desc    Get all species with filtering, sorting, pagination
 // @route   GET /api/species
@@ -34,6 +103,13 @@ exports.getAllSpecies = async (req, res, next) => {
     const total = await Species.countDocuments(filter);
     const species = await Species.find(filter).sort(sortBy).skip(skip).limit(parseInt(limit));
 
+    // Trigger background image refresh for species with missing/invalid images
+    species.forEach(s => {
+      if (!s.imageUrl || s.imageUrl.trim() === "" || s.imageUrl.includes("upload.wikimedia.org")) {
+        refreshSpeciesImageInBackground(s);
+      }
+    });
+
     res.status(200).json({
       success: true,
       total,
@@ -56,6 +132,10 @@ exports.getSpeciesById = async (req, res, next) => {
     if (!species) {
       return res.status(404).json({ success: false, message: "Species not found" });
     }
+
+    // Eagerly validate and fix image for detail view (single species, can afford small delay)
+    await validateAndFixImageUrl(species, false);
+
     res.status(200).json({ success: true, data: species });
   } catch (error) {
     next(error);
@@ -117,16 +197,35 @@ exports.getRecommendations = async (req, res, next) => {
 
     const result = await recommendationService.getRecommendations(speciesId, { limit });
 
-    const recommendations = result.recommendations.map(rec => ({
-      _id: rec._id,
-      name: rec.name,
-      scientificName: rec.scientificName,
-      type: rec.type,
-      conservationStatus: rec.conservationStatus,
-      image: rec.image,
-      ecosystem: rec.ecosystem,
-      zone: rec.zone,
-      score: rec.score,
+    // Validate and refresh recommendation images (small number, can do synchronously)
+    const recommendations = await Promise.all(result.recommendations.map(async (rec) => {
+      // Check if image URL is valid, refresh if not
+      if (rec.image) {
+        const isValid = await validateImageUrl(rec.image, 3000);
+        if (!isValid) {
+          const freshImage = await getSpeciesImage(rec.name, rec.scientificName, rec.type, false);
+          if (freshImage) {
+            // Update MongoDB in background
+            Species.findByIdAndUpdate(rec._id, {
+              imageUrl: freshImage.url,
+              images: [freshImage.url],
+            }).catch(() => {}); // Fire and forget
+            rec.image = freshImage.url;
+          }
+        }
+      }
+
+      return {
+        _id: rec._id,
+        name: rec.name,
+        scientificName: rec.scientificName,
+        type: rec.type,
+        conservationStatus: rec.conservationStatus,
+        imageUrl: rec.image,
+        ecosystem: rec.ecosystem,
+        zone: rec.zone,
+        score: rec.score,
+      };
     }));
 
     res.status(200).json({

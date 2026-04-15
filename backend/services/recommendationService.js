@@ -174,7 +174,7 @@ async function getRuleBasedRecommendations(speciesId, limit = 5) {
       { conservationStatus: sourceSpecies.conservationStatus },
       { type: sourceSpecies.type },
     ],
-  }).select("name scientificName type conservationStatus image imageUrl zone ecosystem population");
+  }).select("name scientificName type conservationStatus imageUrl images zone ecosystem population");
 
   // Score and sort candidates
   const scoredCandidates = candidates.map(candidate => ({
@@ -197,7 +197,7 @@ async function getRuleBasedRecommendations(speciesId, limit = 5) {
     scientificName: item.species.scientificName,
     type: item.species.type,
     conservationStatus: item.species.conservationStatus,
-    image: item.species.imageUrl || item.species.image,
+    image: item.species.imageUrl,
     ecosystem: item.species.ecosystem,
     zone: item.species.zone,
     score: item.score,
@@ -225,7 +225,7 @@ async function getCosineSimilarityRecommendations(speciesId, limit = 5) {
   // Fetch candidates
   const candidates = await Species.find({
     _id: { $ne: speciesId },
-  }).select("name scientificName type conservationStatus image imageUrl ecosystem zone population featureVector");
+  }).select("name scientificName type conservationStatus imageUrl images ecosystem zone population featureVector");
 
   // Calculate similarity scores
   const similarityScores = candidates.map(candidate => {
@@ -251,7 +251,7 @@ async function getCosineSimilarityRecommendations(speciesId, limit = 5) {
     scientificName: item.species.scientificName,
     type: item.species.type,
     conservationStatus: item.species.conservationStatus,
-    image: item.species.imageUrl || item.species.image,
+    image: item.species.imageUrl,
     ecosystem: item.species.ecosystem,
     zone: item.species.zone,
     score: Math.round(item.score * 100) / 100, // Round to 2 decimal places
