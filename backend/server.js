@@ -362,9 +362,11 @@ function startServer(port, attempts = 0) {
     });
   });
 
-  // Nodemon restart handling
-  process.once('SIGUSR2', () => {
+  // Nodemon restart handling - use process.on to handle multiple restarts reliably
+  process.on('SIGUSR2', () => {
+    console.log('📡 Received SIGUSR2 - graceful restart initiated');
     server.close(() => {
+      console.log('📡 Server closed, initiating restart...');
       process.kill(process.pid, 'SIGUSR2');
     });
   });

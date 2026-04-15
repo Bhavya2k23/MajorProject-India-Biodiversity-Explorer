@@ -51,7 +51,11 @@
       "Bash(python3 -c \" import sys, json d = json.load\\(sys.stdin\\) print\\('Success:', d.get\\('success'\\)\\) if d.get\\('success'\\) and d.get\\('data'\\): z = d['data'] print\\('Zone:', z.get\\('zoneName'\\)\\) else: print\\('Error:', d.get\\('message'\\)\\) \")",
       "Bash(python3 -c \" import sys, json d = json.load\\(sys.stdin\\) print\\('Animals search /animals?search=Tiger:'\\) print\\(' total:', d.get\\('total'\\)\\) print\\(' count:', d.get\\('count'\\)\\) print\\(' data is list:', isinstance\\(d.get\\('data'\\), list\\)\\) data_arr = d.get\\('data', []\\) if data_arr: print\\(' first item name:', data_arr[0].get\\('name'\\)\\) print\\(' first item _id:', data_arr[0].get\\('_id'\\)\\) print\\(' first item status:', data_arr[0].get\\('conservationStatus'\\)\\) \")",
       "Bash(python3 -c \" import sys, json d = json.load\\(sys.stdin\\) data = d.get\\('data', {}\\) species = data.get\\('species', []\\) print\\('Global search /search:'\\) print\\(' data.data.species is list:', isinstance\\(species, list\\)\\) print\\(' species count:', len\\(species\\)\\) if species: print\\(' first:', species[0].get\\('name'\\), '/', species[0].get\\('conservationStatus'\\)\\) \")",
-      "Bash(python3 -c \" import sys, json d = json.load\\(sys.stdin\\) print\\('Current response structure:'\\) print\\(json.dumps\\(d, indent=2\\)[:800]\\) print\\(\\) print\\('If user wants data.data convention:'\\) fixed = {'success': d.get\\('success'\\), 'total': d.get\\('total'\\), 'page': d.get\\('page'\\), 'pages': d.get\\('pages'\\), 'count': d.get\\('count'\\), 'data': {'data': d.get\\('data'\\)}} print\\(json.dumps\\(fixed, indent=2\\)[:500]\\) \")"
+      "Bash(python3 -c \" import sys, json d = json.load\\(sys.stdin\\) print\\('Current response structure:'\\) print\\(json.dumps\\(d, indent=2\\)[:800]\\) print\\(\\) print\\('If user wants data.data convention:'\\) fixed = {'success': d.get\\('success'\\), 'total': d.get\\('total'\\), 'page': d.get\\('page'\\), 'pages': d.get\\('pages'\\), 'count': d.get\\('count'\\), 'data': {'data': d.get\\('data'\\)}} print\\(json.dumps\\(fixed, indent=2\\)[:500]\\) \")",
+      "Bash(npm ls:*)",
+      "Bash(npm prune:*)",
+      "Bash(tasklist)",
+      "Bash(wmic process:*)"
     ]
   }
 }
