@@ -2,7 +2,7 @@ const Plant = require("../models/Plant");
 
 exports.getAllPlants = async (req, res, next) => {
   try {
-    const { zone, ecosystem, type, conservationStatus, sort, page = 1, limit = 500, search } = req.query;
+    const { zone, ecosystem, type, conservationStatus, sort, page = 1, limit = 20, search } = req.query;
 
     const filter = {};
     if (zone) filter.zone = { $regex: zone, $options: "i" };

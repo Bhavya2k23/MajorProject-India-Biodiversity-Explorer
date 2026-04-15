@@ -55,7 +55,8 @@
       "Bash(npm ls:*)",
       "Bash(npm prune:*)",
       "Bash(tasklist)",
-      "Bash(wmic process:*)"
+      "Bash(wmic process:*)",
+      "Bash(npx tsc *)"
     ]
   }
 }
