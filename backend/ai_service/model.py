@@ -96,7 +96,7 @@ IMAGENET_TO_SPECIES = {
     100: "Anole",           # anole lizard
     101: "African Chameleon", # chameleon
     102: "Spiny Lizard",    # spiny lizard
-    103: " agama",           # agama
+    103: "Agama",           # agama
     104: "Lion",            # lion
     105: "Tiger",           # tiger
     106: "Jaguar",          # jaguar
@@ -491,7 +491,7 @@ IMAGENET_TO_SPECIES = {
     501: "Black-bellied Plover", # black-bellied plover
     502: "American Golden Plover", # american golden plover
     503: "Pacific Golden Plover", # pacific golden plover
-    504: " Eurasian Dotterel", # eurasian dotterel
+    504: "Eurasian Dotterel", # eurasian dotterel
     505: "Ruddy Turnstone", # ruddy turnstone
     506: "Black Turnstone", # black turnstone
     507: "Red Knot",        # red knot
@@ -551,7 +551,7 @@ IMAGENET_TO_SPECIES = {
     561: "American Barn Owl", # american barn owl
     562: "African Marsh Owl", # african marsh owl
     563: "Marsh Owl",       # marsh owl
-    564: "Shooting Star",   # shooting star
+    564: "Storm Petrel",    # storm petrel
     565: "Bermuda Petrel",  # bermuda petrel
     566: "Hawaiian Petrel", # hawaiian petrel
     567: "Montague's Harrier", # montague's harrier
@@ -560,7 +560,7 @@ IMAGENET_TO_SPECIES = {
     570: "Pallid Harrier",  # pallid harrier
     571: "Pied Harrier",    # pied harrier
     572: "Montagu Harrier", # montagu harrier
-    573: " Hen Harrier",    # hen harrier
+    573: "Hen Harrier",    # hen harrier
     574: "Northern Harrier", # northern harrier
     575: "White-bellied Harrier", # white-bellied harrier
     576: "Red Harrier",     # red harrier
@@ -731,7 +731,7 @@ IMAGENET_TO_SPECIES = {
     741: "Barred Cuckoo-shrike", # barred cuckoo-shrike
     742: "White-bellied Cuckoo-shrike", # white-bellied cuckoo-shrike
     743: "Cerulean Cuckoo-shrike", # cerulean cuckoo-shrike
-    744: "Notodromo",       # notodromo
+    744: "Northern Bald Ibis",  # northern bald ibis
     745: "Hoopoe",          # hoopoe
     746: "Green Hoopoe",    # green hoopoe
     747: "Madagascar Hoopoe", # madagascar hoopoe
@@ -739,10 +739,10 @@ IMAGENET_TO_SPECIES = {
     749: "Great Hornbill",  # great hornbill
     750: "Rhinoceros Hornbill", # rhinoceros hornbill
     751: "Helmeted Hornbill", # helmeted hornbill
-    752: "Sriel",           # sriel
-    753: "Minerva",         # minerva
-    754: "No在外面",         # no在外面
-    755: "在外面",          # 在外面
+    752: "Sri Lankan Frogmouth",  # sri lankan frogmouth
+    753: "Large Frogmouth",      # large frogmouth
+    754: "Oriental Dollarbird",  # oriental dollarbird
+    755: "Asian Kingfisher",     # asian kingfisher
     756: "Todies",          # todies
     757: "Broad-billed Motmot", # broad-billed motmot
     758: "Rufous Motmot",   # rufous motmot
@@ -757,20 +757,19 @@ IMAGENET_TO_SPECIES = {
     767: "Blue-tailed Motmot", # blue-tailed motmot
     768: "Cinnamon Attila", # cinnamon attila
     769: "Bright-rumped Attila", # bright-rumped attila
-    770: " flammulated",    # flammulated
+    770: "Flammulated Owl",     # flammulated owl
     771: "Great Grebe",     # great grebe
     772: "Atitlan Grebe",   # atitlan grebe
-    773: "Juvenile",        # juvenile
-    774: "Chick",           # chick
-    775: "Hatchling",       # hatchling
-    776: "Nestling",        # nestling
-    777: "Fledgling",       # fledgling
-    778: "Immature",        # immature
-    779: "Subadult",        # subadult
-    780: "Adult",           # adult
-    781: "Yearling",        # yearling
-    782: "Mature",          # mature
-    783: "Adu",             # adu
+    773: "Pacific Loon",          # pacific loon
+    774: "Red-throated Loon",     # red-throated loon
+    775: "Black-throated Loon",   # black-throated loon
+    776: "Yellow-billed Loon",    # yellow-billed loon
+    777: "Great Northern Diver",  # great northern diver
+    778: "White-billed Diver",    # white-billed diver
+    779: "Black-necked Grebe",     # black-necked grebe
+    780: "Horned Grebe",          # horned grebe
+    781: "Red-necked Grebe",       # red-necked grebe
+    782: "Eared Grebe",           # eared grebe
     784: "Bull",            # bull (cattle)
     785: "Ox",              # ox
     786: "Calf",            # calf
@@ -836,7 +835,7 @@ IMAGENET_TO_SPECIES = {
     846: "Great Hamerkop",  # great hamerkop
     847: "Brown Hamerkop",  # brown hamerkop
     848: "Hamerkop",        # hamerkop
-    849: " shoebill",       # shoebill
+    849: "Shoebill",        # shoebill
     850: "African Openbill", # african openbill
     851: "Asian Openbill",  # asian openbill
     852: "Stork",           # stork
@@ -893,7 +892,7 @@ IMAGENET_TO_SPECIES = {
     903: "Little Corella",  # little corella
     904: "Western Corella", # western corella
     905: "Long-billed Corella", # long-billed corella
-    906: " Sulfur-crested Cockatoo", # sulfur-crested cockatoo
+    906: "Sulfur-crested Cockatoo", # sulfur-crested cockatoo
     907: "Eleonora Cockatoo", # eleonora cockatoo
     908: "Citron-crested Cockatoo", # citron-crested cockatoo
     909: "Moluccan Cockatoo", # moluccan cockatoo
@@ -947,46 +946,46 @@ IMAGENET_TO_SPECIES = {
     957: "Bumblebee",       # bumblebee
     958: "Carpenter Bee",   # carpenter bee
     959: "Orchid Bee",      # orchid bee
-    960: "Centride",        # centride
-    961: "Fire Bee",        # fire bee
-    962: "Stingless Bee",   # stingless bee
+    960: "Orb Weaver Spider",   # orb weaver spider
+    961: "Mason Bee",          # mason bee
+    962: "Stingless Bee",      # stingless bee
     963: "Dragonfly",       # dragonfly
     964: "Damselfly",       # damselfly
-    965: "Damselfly",       # damselfly
-    966: "Nymph",           # nymph
-    967: "Naiad",           # naiad
-    968: "Chrysalis",       # chrysalis
-    969: "Cocoon",          # cocoon
-    970: "Wings",           # wings
-    971: "Proboscis",       # proboscis
-    972: "Antennae",        # antennae
-    973: "Thorax",          # thorax
-    974: "Abdomen",         # abdomen
-    975: "Compound Eye",    # compound eye
-    976: "Spiracle",        # spiracle
-    977: "Tracheae",        # tracheae
-    978: "Hemolymph",       # hemolymph
-    979: "Malpighian Tube", # malpighian tube
-    980: "Cuticle",         # cuticle
-    981: "Exoskeleton",     # exoskeleton
-    982: "Spinneret",       # spinneret
-    983: "Silk",            # silk
-    984: "Web",             # web
-    985: "Cocoon",          # cocoon
-    986: "Larva",           # larva
-    987: "Pupa",            # pupa
-    988: "Adult",           # adult
-    989: "Nymph",           # nymph
-    990: "Instar",          # instar
-    991: "Metamorphosis",   # metamorphosis
-    992: "Complete Metamorphosis", # complete metamorphosis
-    993: "Incomplete Metamorphosis", # incomplete metamorphosis
-    994: "Holometabolous",  # holometabolous
-    995: "Hemimetabolous",  # hemimetabolous
-    996: "Amphibian",       # amphibian
-    997: "Frog",            # frog
-    998: "Toad",            # toad
-    999: "Salamander",      # salamander
+    965: "Firefly",            # firefly
+    966: "Lacewing",           # lacewing
+    967: "Alderfly",           # alderfly
+    968: "Dobsonfly",          # dobsonfly
+    969: "Snakefly",           # snakefly
+    970: "Monarch Butterfly",     # monarch butterfly
+    971: "Blue Morpho",          # blue morpho
+    972: "Swallowtail Butterfly", # swallowtail
+    973: "Atlas Moth",           # atlas moth
+    974: "Hawk Moth",            # hawk moth
+    975: "Carpenter Bee",        # carpenter bee
+    976: "Honey Bee",            # honey bee
+    977: "Bumblebee",            # bumblebee
+    978: "Stonefly",             # stonefly
+    979: "Mayfly",                # mayfly
+    980: "Praying Mantis",       # praying mantis
+    981: "Stick Insect",         # stick insect
+    982: "Grasshopper",          # grasshopper
+    983: "Cicada",               # cicada
+    984: "Indian Honeybee",      # indian honeybee
+    985: "Giant Wood Spider",    # giant wood spider
+    986: "Tarantula",            # tarantula
+    987: "Scorpion",             # scorpion
+    988: "Centipede",            # centipede
+    989: "Millipede",            # millipede
+    990: "Earthworm",            # earthworm
+    991: "Leech",                # leech
+    992: "Snail",                # snail
+    993: "Slug",                 # slug
+    994: "Clam",                 # clam
+    995: "Oyster",               # oyster
+    996: "Bull Frog",            # bull frog
+    997: "Indian Tree Frog",     # indian tree frog
+    998: "Common Toad",          # common toad
+    999: "Salamander",           # salamander
 }
 
 
@@ -1086,20 +1085,84 @@ class SpeciesClassifier:
 
         return results
 
-    def _fallback_predict(self) -> List[Tuple[str, float]]:
-        """Rule-based fallback when TensorFlow is unavailable."""
+    def _fallback_predict(self, image: Image.Image = None) -> List[Tuple[str, float]]:
+        """Rule-based fallback when TensorFlow is unavailable.
+
+        Uses basic image color analysis to make educated guesses about species type.
+        Returns common Indian wildlife species based on detected color patterns.
+        """
         import random
-        species_list = INDIAN_BIODIVERSITY_SPECIES[:20]
-        random.shuffle(species_list)
-        top = species_list[:3]
+
+        # Analyze image colors for basic species classification
+        color_species = {
+            "orange": ["Bengal Tiger", "Indian Tiger", "Orange Butterfly"],
+            "gray": ["Indian Elephant", "Asiatic Elephant", "Grey Junglefowl"],
+            "white": ["Indian Peafowl", "White-Rumped Vulture", "Sarus Crane"],
+            "green": ["Indian Tree Frog", "Green Turtle", "Parrot"],
+            "brown": ["Sambar Deer", "Gaur", "Brown Bear"],
+            "black": ["Black Panther", "Asian Openbill", "Black-rumped Flameback"],
+            "yellow": ["Indian Peafowl", "Yellow Bulbul", "Goldfinch"],
+            "red": ["Red Junglefowl", "Indian Pitta", "Cardinal"],
+            "blue": ["Indian Peafowl", "Blue Morpho", "Blue-ringed Octopus"],
+        }
+
+        # Default species list for when color analysis isn't helpful
+        default_species = [
+            "Bengal Tiger", "Indian Elephant", "Peacock", "Asiatic Lion",
+            "Sambar Deer", "Indian Rhino", "Snow Leopard", "Bengal Fox",
+            "King Cobra", "Monitor Lizard", "Sarus Crane", "Great Hornbill",
+        ]
+
+        if image is not None:
+            try:
+                # Convert to RGB and resize for faster analysis
+                img = image.convert("RGB").resize((100, 100))
+                pixels = list(img.getdata())
+
+                # Calculate average color
+                avg_r = sum(p[0] for p in pixels) / len(pixels)
+                avg_g = sum(p[1] for p in pixels) / len(pixels)
+                avg_b = sum(p[2] for p in pixels) / len(pixels)
+
+                # Determine dominant color category
+                max_color = max(avg_r, avg_g, avg_b)
+                if max_color == avg_r and avg_r > 100:
+                    if avg_g < 80 and avg_b < 80:
+                        dominant = "orange" if avg_r > 150 else "red"
+                    elif avg_r > 200 and avg_g > 150 and avg_b < 100:
+                        dominant = "yellow"
+                    else:
+                        dominant = "red"
+                elif max_color == avg_g and avg_g > 80:
+                    dominant = "green"
+                elif max_color == avg_b and avg_b > 100:
+                    dominant = "blue"
+                elif avg_r == avg_g == avg_b and avg_r > 150:
+                    dominant = "white"
+                elif avg_r > avg_g and avg_r > avg_b and avg_r < 100:
+                    dominant = "brown"
+                else:
+                    dominant = "gray"
+
+                # Get species for dominant color, or use default
+                candidates = color_species.get(dominant, default_species)
+                random.shuffle(candidates)
+                top = candidates[:3]
+
+            except Exception:
+                # If image analysis fails, use default list
+                top = random.sample(default_species, 3)
+        else:
+            top = random.sample(default_species, 3)
+
         # Assign mock confidences that sum to ~1
-        confs = [0.65, 0.22, 0.13]
+        confs = [0.55, 0.28, 0.17]
         return list(zip(top, confs))
 
     def predict(self, image: Image.Image) -> dict:
         """Run inference and return structured result."""
         if self.model is None or not TENSORFLOW_AVAILABLE:
-            results = self._fallback_predict()
+            results = self._fallback_predict(image)
         else:
             tensor = self.preprocess(image)
             probs = self.model.predict(tensor, verbose=0)
