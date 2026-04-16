@@ -245,6 +245,8 @@ exports.recognizeSpecies = async (req, res, next) => {
         historyId: historyEntry?._id || null,
         mockPrediction: false,  // Indicate this is a real AI prediction
         confidenceThreshold: MIN_SERVER_CONFIDENCE,
+        predictionsAboveThreshold: prediction.predictionsAboveThreshold || filteredTop3.length,
+        isIndianSpecies: prediction.isIndianSpecies ?? true,
       },
     });
   } catch (err) {
