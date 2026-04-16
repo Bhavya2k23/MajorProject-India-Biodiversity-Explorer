@@ -152,15 +152,23 @@ exports.recognizeSpecies = async (req, res, next) => {
     }
 
     // Use mock predictions when AI service is unavailable
+    // All mock predictions are Indian species with realistic confidences
     if (useMock) {
       const mockPredictions = [
         { label: "Bengal Tiger (Panthera tigris tigris)", confidence: 0.92 },
         { label: "Indian Elephant (Elephas maximus indicus)", confidence: 0.78 },
-        { label: "Indian Peafowl (Pavo cristatus)", confidence: 0.65 },
-        { label: "Asiatic Lion (Panthera leo persica)", confidence: 0.54 },
-        { label: "Bengal Fox (Vulpes bengalensis)", confidence: 0.43 },
+        { label: "Indian Peafowl (Pavo cristatus)", confidence: 0.72 },
+        { label: "Asiatic Lion (Panthera leo persica)", confidence: 0.65 },
+        { label: "Sambar Deer (Rusa unicolor)", confidence: 0.58 },
+        { label: "Bengal Fox (Vulpes bengalensis)", confidence: 0.52 },
+        { label: "Great Hornbill (Buceros bicornis)", confidence: 0.48 },
+        { label: "King Cobra (Ophiophagus hannah)", confidence: 0.45 },
+        { label: "Indian Pitta (Pitta brachyura)", confidence: 0.42 },
+        { label: "White-Rumped Vulture (Gyps bengalensis)", confidence: 0.38 },
       ];
-      const top3 = mockPredictions.slice(0, 3);
+      // Filter to only those above 60% confidence (or include top 3 regardless)
+      const aboveThreshold = mockPredictions.filter(p => p.confidence >= 0.6);
+      const top3 = aboveThreshold.length >= 3 ? aboveThreshold.slice(0, 3) : mockPredictions.slice(0, 3);
       const top = top3[0];
 
       // Save mock prediction to history
@@ -197,17 +205,24 @@ exports.recognizeSpecies = async (req, res, next) => {
       });
     }
 
+    // Server-side minimum confidence threshold (60%)
+    const MIN_SERVER_CONFIDENCE = 0.60;
+
     const processingTimeMs = Date.now() - startTime;
     const imageUrl = getImageUrl(req, req.file.filename);
+
+    // Filter predictions server-side to only return those above confidence threshold
+    const filteredTop3 = (prediction.top3Predictions || []).filter(p => p.confidence >= MIN_SERVER_CONFIDENCE);
+    const topPrediction = filteredTop3[0] || prediction.top3Predictions?.[0] || { label: prediction.predictedSpecies, confidence: prediction.confidenceScore };
 
     // Save prediction to history
     let historyEntry;
     try {
       historyEntry = await PredictionHistory.create({
         imageUrl,
-        predictedSpecies: prediction.predictedSpecies,
-        confidenceScore: prediction.confidenceScore,
-        top3Predictions: prediction.top3Predictions,
+        predictedSpecies: topPrediction.label,
+        confidenceScore: topPrediction.confidence,
+        top3Predictions: filteredTop3.length > 0 ? filteredTop3 : prediction.top3Predictions,
         userId: req.user?._id || null,
         fileSize: req.file.size,
         processingTimeMs,
@@ -221,13 +236,15 @@ exports.recognizeSpecies = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        predictedSpecies: prediction.predictedSpecies,
-        confidenceScore: prediction.confidenceScore,
-        top3Predictions: prediction.top3Predictions,
+        predictedSpecies: topPrediction.label,
+        confidenceScore: topPrediction.confidence,
+        top3Predictions: filteredTop3,
+        top3AllPredictions: prediction.top3Predictions, // Include all for reference
         imageUrl,
         processingTimeMs,
         historyId: historyEntry?._id || null,
         mockPrediction: false,  // Indicate this is a real AI prediction
+        confidenceThreshold: MIN_SERVER_CONFIDENCE,
       },
     });
   } catch (err) {
