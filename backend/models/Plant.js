@@ -42,6 +42,11 @@ const plantSchema = new mongoose.Schema(
     },
     uses: [String],
     funFacts: [String],
+    coordinates: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+      locationName: { type: String, default: "" },
+    },
     imageUrl: {
       type: String,
       default: "",

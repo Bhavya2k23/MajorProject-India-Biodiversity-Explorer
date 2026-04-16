@@ -14,6 +14,7 @@
 const jwt          = require('jsonwebtoken');
 const Admin        = require('../models/Admin');
 const Species      = require('../models/Species');
+const Plant        = require('../models/Plant');
 const Ecosystem    = require('../models/Ecosystem');
 const Zone         = require('../models/Zone');
 const QuizQuestion = require('../models/QuizQuestion');
@@ -679,14 +680,21 @@ exports.deleteQuestion = async (req, res) => {
 
 exports.getMapSpeciesData = async (req, res) => {
   try {
-    const species = await Species.find({
-      'coordinates.lat': { $exists: true, $ne: null },
-    })
-      .select('name scientificName conservationStatus coordinates imageUrl ecosystem zone')
-      .populate('ecosystem', 'name')
-      .populate('zone', 'name');
+    const [animals, plants] = await Promise.all([
+      Species.find({ 'coordinates.lat': { $exists: true, $ne: null } })
+        .select('name scientificName conservationStatus coordinates imageUrl ecosystem zone type')
+        .populate('ecosystem', 'name')
+        .populate('zone', 'name')
+        .lean(),
+      Plant.find({ 'coordinates.lat': { $exists: true, $ne: null } })
+        .select('name scientificName conservationStatus coordinates imageUrl ecosystem zone type')
+        .lean(),
+    ]);
 
-    res.json({ success: true, data: species, total: species.length });
+    const animalsWithCategory = animals.map((s) => ({ ...s, category: 'animal', _id: s._id.toString() }));
+    const plantsWithCategory = plants.map((p) => ({ ...p, category: 'plant', _id: p._id.toString() }));
+
+    res.json({ success: true, data: [...animalsWithCategory, ...plantsWithCategory], total: animals.length + plants.length });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -704,26 +712,26 @@ exports.updateSpeciesCoordinates = async (req, res) => {
       });
     }
 
-    const species = await Species.findByIdAndUpdate(
-      id,
-      {
-        coordinates: {
-          lat: parseFloat(lat),
-          lng: parseFloat(lng),
-          locationName: locationName || '',
-        },
-      },
-      { new: true }
-    );
+    const coords = {
+      lat: parseFloat(lat),
+      lng: parseFloat(lng),
+      locationName: locationName || '',
+    };
 
-    if (!species) {
+    // Try Species (animals) first, then Plant
+    let updated = await Species.findByIdAndUpdate(id, { coordinates: coords }, { new: true });
+    if (!updated) {
+      updated = await Plant.findByIdAndUpdate(id, { coordinates: coords }, { new: true });
+    }
+
+    if (!updated) {
       return res.status(404).json({ success: false, message: 'Species not found.' });
     }
 
     res.json({
       success: true,
       message: 'Coordinates updated successfully.',
-      data: species,
+      data: updated,
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

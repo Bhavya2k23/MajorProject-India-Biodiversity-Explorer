@@ -73,6 +73,7 @@ const externalDataRoutes = require("./routes/externalDataRoutes");
 const imageRecognitionRoutes = require("./routes/imageRecognitionRoutes");
 const recommendationRoutes = require("./routes/recommendationRoutes");
 const leaderboardRoutes = require("./routes/leaderboardRoutes");
+const mapRoutes = require("./routes/mapRoutes");
 
 // ─── Cron Jobs ────────────────────────────────────────────────
 const { startWeeklyReset } = require("./services/cronService");
@@ -162,6 +163,11 @@ app.use("/api/zones", (req, res, next) => {
   next();
 });
 
+app.use("/api/map", (req, res, next) => {
+  res.set("Cache-Control", "public, max-age=60"); // 1 min for map data (changes with filters)
+  next();
+});
+
 // ─── HTTP logger (development only) ────────────────────────────
 if (morgan && process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
@@ -195,6 +201,9 @@ app.use("/api/recommendations", recommendationRoutes);
 
 // Leaderboard
 app.use("/api/leaderboard", leaderboardRoutes);
+
+// Map species data
+app.use("/api/map", mapRoutes);
 
 // ─── Public Seed Endpoint ─────────────────────────────────────────────
 // POST /api/seed — Database seeder (public, no auth)
