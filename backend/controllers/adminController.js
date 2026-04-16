@@ -307,6 +307,29 @@ exports.createSpecies = async (req, res) => {
   try {
     const speciesData = req.body;
 
+    // Set defaults for required fields that might be missing from frontend form
+    if (!speciesData.type) speciesData.type = 'Mammal';
+    if (speciesData.population === undefined || speciesData.population === '') {
+      speciesData.population = 0;
+    } else {
+      speciesData.population = parseInt(speciesData.population);
+    }
+    if (speciesData.habitatLoss === undefined || speciesData.habitatLoss === '') {
+      speciesData.habitatLoss = 50;
+    } else {
+      speciesData.habitatLoss = Math.min(100, Math.max(0, parseInt(speciesData.habitatLoss)));
+    }
+    if (speciesData.pollutionLevel === undefined || speciesData.pollutionLevel === '') {
+      speciesData.pollutionLevel = 50;
+    } else {
+      speciesData.pollutionLevel = Math.min(100, Math.max(0, parseInt(speciesData.pollutionLevel)));
+    }
+    if (speciesData.climateRisk === undefined || speciesData.climateRisk === '') {
+      speciesData.climateRisk = 50;
+    } else {
+      speciesData.climateRisk = Math.min(100, Math.max(0, parseInt(speciesData.climateRisk)));
+    }
+
     // Handle array fields that might arrive as comma-separated strings
     if (speciesData.threats && typeof speciesData.threats === 'string') {
       speciesData.threats = speciesData.threats.split(',').map((t) => t.trim()).filter(Boolean);
@@ -314,7 +337,7 @@ exports.createSpecies = async (req, res) => {
     if (speciesData.funFacts && typeof speciesData.funFacts === 'string') {
       speciesData.funFacts = speciesData.funFacts.split(',').map((f) => f.trim()).filter(Boolean);
     }
-    
+
     // Process uploaded images
     let images = [];
     if (req.files && req.files.length > 0) {
@@ -327,6 +350,15 @@ exports.createSpecies = async (req, res) => {
     // Set for backward compatibility
     if (images.length > 0) {
       speciesData.image = images[0];
+    }
+
+    // Handle coordinates
+    if (speciesData.lat !== undefined && speciesData.lng !== undefined) {
+      speciesData.coordinates = {
+        lat: parseFloat(speciesData.lat),
+        lng: parseFloat(speciesData.lng),
+        locationName: speciesData.locationName || '',
+      };
     }
 
     const species = new Species(speciesData);
@@ -363,14 +395,20 @@ exports.updateSpecies = async (req, res) => {
     // Process new uploaded images
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map((file) => `/uploads/${file.filename}`);
-      // Usually, we'd want to handle replacing vs appending. 
-      // For this implementation, we will replace existing images if new ones are uploaded.
       updateData.images = newImages;
       updateData.image = newImages[0];
     } else if (updateData.imageUrl && !updateData.images) {
-      // Fallback
-       updateData.images = [updateData.imageUrl];
-       updateData.image = updateData.imageUrl;
+      updateData.images = [updateData.imageUrl];
+      updateData.image = updateData.imageUrl;
+    }
+
+    // Handle coordinates update
+    if (updateData.lat !== undefined && updateData.lng !== undefined) {
+      updateData.coordinates = {
+        lat: parseFloat(updateData.lat),
+        lng: parseFloat(updateData.lng),
+        locationName: updateData.locationName || '',
+      };
     }
 
     const species = await Species.findByIdAndUpdate(id, updateData, {
@@ -416,7 +454,7 @@ exports.getAllEcosystemsAdmin = async (req, res) => {
     // Attach live species count to each ecosystem
     const withCounts = await Promise.all(
       ecosystems.map(async (eco) => {
-        const count = await Species.countDocuments({ ecosystem: eco._id });
+        const count = await Species.countDocuments({ ecosystem: eco.name });
         return { ...eco.toObject(), speciesCount: count };
       })
     );
@@ -430,14 +468,29 @@ exports.getAllEcosystemsAdmin = async (req, res) => {
 exports.createEcosystem = async (req, res) => {
   try {
     const data = req.body;
-    if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (data.keyFeatures && typeof data.keyFeatures === 'string') {
-      data.keyFeatures = data.keyFeatures.split(',').map((f) => f.trim()).filter(Boolean);
-    }
 
-    const ecosystem = new Ecosystem(data);
+    // Map frontend field names to model field names
+    const mappedData = {
+      name: data.name,
+      description: data.description || '',
+      zone: data.states || '', // frontend sends 'states' but model uses 'zone' for the zone name
+      keySpecies: [],
+      majorThreats: [],
+      area: data.area ? parseFloat(data.area) : 0,
+      image: data.imageUrl || '',
+    };
+
+    if (data.keyFeatures && typeof data.keyFeatures === 'string') {
+      mappedData.keySpecies = data.keyFeatures.split(',').map((f) => f.trim()).filter(Boolean);
+    }
+    if (data.threats && typeof data.threats === 'string') {
+      mappedData.majorThreats = data.threats.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+    // Handle array inputs
+    if (Array.isArray(data.keyFeatures)) mappedData.keySpecies = data.keyFeatures;
+    if (Array.isArray(data.threats)) mappedData.majorThreats = data.threats;
+
+    const ecosystem = new Ecosystem(mappedData);
     await ecosystem.save();
     res.status(201).json({
       success: true,
@@ -445,6 +498,12 @@ exports.createEcosystem = async (req, res) => {
       data: ecosystem,
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ecosystem with this name already exists.',
+      });
+    }
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -453,14 +512,31 @@ exports.updateEcosystem = async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
-    if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
+
+    // Map frontend field names to model field names
+    const mappedData = {
+      name: data.name,
+      description: data.description || '',
+      zone: data.states || '',
+      area: data.area ? parseFloat(data.area) : 0,
+      image: data.imageUrl || '',
+      keySpecies: [],
+      majorThreats: [],
+    };
+
     if (data.keyFeatures && typeof data.keyFeatures === 'string') {
-      data.keyFeatures = data.keyFeatures.split(',').map((f) => f.trim()).filter(Boolean);
+      mappedData.keySpecies = data.keyFeatures.split(',').map((f) => f.trim()).filter(Boolean);
+    } else if (Array.isArray(data.keyFeatures)) {
+      mappedData.keySpecies = data.keyFeatures;
     }
 
-    const ecosystem = await Ecosystem.findByIdAndUpdate(id, data, {
+    if (data.threats && typeof data.threats === 'string') {
+      mappedData.majorThreats = data.threats.split(',').map((t) => t.trim()).filter(Boolean);
+    } else if (Array.isArray(data.threats)) {
+      mappedData.majorThreats = data.threats;
+    }
+
+    const ecosystem = await Ecosystem.findByIdAndUpdate(id, mappedData, {
       new: true,
       runValidators: true,
     });
@@ -527,17 +603,46 @@ exports.getAllZonesAdmin = async (req, res) => {
 exports.createZone = async (req, res) => {
   try {
     const data = req.body;
+
+    // Map frontend field names to model field names
+    const mappedData = {
+      zoneName: data.name, // frontend sends 'name', model uses 'zoneName'
+      description: data.description || '',
+      statesCovered: [],
+      keySpecies: [],
+      ecosystems: [],
+      area: data.area ? parseFloat(data.area) : 0,
+      image: data.imageUrl || '',
+    };
+
     if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (data.keySpecies && typeof data.keySpecies === 'string') {
-      data.keySpecies = data.keySpecies.split(',').map((s) => s.trim()).filter(Boolean);
+      mappedData.statesCovered = data.states.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (Array.isArray(data.states)) {
+      mappedData.statesCovered = data.states;
     }
 
-    const zone = new Zone(data);
+    if (data.keySpecies && typeof data.keySpecies === 'string') {
+      mappedData.keySpecies = data.keySpecies.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (Array.isArray(data.keySpecies)) {
+      mappedData.keySpecies = data.keySpecies;
+    }
+
+    if (data.threats && typeof data.threats === 'string') {
+      mappedData.ecosystems = data.threats.split(',').map((t) => t.trim()).filter(Boolean);
+    } else if (Array.isArray(data.threats)) {
+      mappedData.ecosystems = data.threats;
+    }
+
+    const zone = new Zone(mappedData);
     await zone.save();
     res.status(201).json({ success: true, message: 'Zone created successfully.', data: zone });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Zone with this name already exists.',
+      });
+    }
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -546,14 +651,37 @@ exports.updateZone = async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
+
+    // Map frontend field names to model field names
+    const mappedData = {
+      zoneName: data.name,
+      description: data.description || '',
+      statesCovered: [],
+      keySpecies: [],
+      ecosystems: [],
+      area: data.area ? parseFloat(data.area) : 0,
+      image: data.imageUrl || '',
+    };
+
     if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (data.keySpecies && typeof data.keySpecies === 'string') {
-      data.keySpecies = data.keySpecies.split(',').map((s) => s.trim()).filter(Boolean);
+      mappedData.statesCovered = data.states.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (Array.isArray(data.states)) {
+      mappedData.statesCovered = data.states;
     }
 
-    const zone = await Zone.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+    if (data.keySpecies && typeof data.keySpecies === 'string') {
+      mappedData.keySpecies = data.keySpecies.split(',').map((s) => s.trim()).filter(Boolean);
+    } else if (Array.isArray(data.keySpecies)) {
+      mappedData.keySpecies = data.keySpecies;
+    }
+
+    if (data.threats && typeof data.threats === 'string') {
+      mappedData.ecosystems = data.threats.split(',').map((t) => t.trim()).filter(Boolean);
+    } else if (Array.isArray(data.threats)) {
+      mappedData.ecosystems = data.threats;
+    }
+
+    const zone = await Zone.findByIdAndUpdate(id, mappedData, { new: true, runValidators: true });
     if (!zone) {
       return res.status(404).json({ success: false, message: 'Zone not found.' });
     }
