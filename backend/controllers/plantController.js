@@ -165,3 +165,162 @@ exports.getRecommendations = async (req, res, next) => {
     next(error);
   }
 };
+
+// ══════════════════════════════════════════════════════════════
+// ADMIN CRUD FOR PLANTS
+// ══════════════════════════════════════════════════════════════
+
+exports.getAllPlantsAdmin = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 100,
+      search = '',
+      status = '',
+      ecosystem = '',
+      zone = '',
+    } = req.query;
+
+    const query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { scientificName: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (status) query.conservationStatus = status;
+    if (ecosystem) query.ecosystem = { $regex: ecosystem, $options: 'i' };
+    if (zone) query.zone = { $regex: zone, $options: 'i' };
+
+    const total = await Plant.countDocuments(query);
+    const plants = await Plant.find(query)
+      .sort({ createdAt: -1 })
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .limit(parseInt(limit));
+
+    res.json({
+      success: true,
+      data: plants,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.createPlant = async (req, res) => {
+  try {
+    const plantData = req.body;
+
+    // Handle array fields that might arrive as comma-separated strings
+    if (plantData.uses && typeof plantData.uses === 'string') {
+      plantData.uses = plantData.uses.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+    if (plantData.funFacts && typeof plantData.funFacts === 'string') {
+      plantData.funFacts = plantData.funFacts.split(',').map((f) => f.trim()).filter(Boolean);
+    }
+
+    // Process uploaded images
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      images = req.files.map((file) => `/uploads/${file.filename}`);
+    } else if (plantData.imageUrl) {
+      images = [plantData.imageUrl];
+    }
+    plantData.images = images;
+    if (images.length > 0) {
+      plantData.imageUrl = images[0];
+    }
+
+    // Handle coordinates
+    if (plantData.lat && plantData.lng) {
+      plantData.coordinates = {
+        lat: parseFloat(plantData.lat),
+        lng: parseFloat(plantData.lng),
+        locationName: plantData.locationName || '',
+      };
+    }
+
+    const plant = new Plant(plantData);
+    await plant.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Plant created successfully.',
+      data: plant,
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'Plant with this name already exists.',
+      });
+    }
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.updatePlant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (updateData.uses && typeof updateData.uses === 'string') {
+      updateData.uses = updateData.uses.split(',').map((t) => t.trim()).filter(Boolean);
+    }
+    if (updateData.funFacts && typeof updateData.funFacts === 'string') {
+      updateData.funFacts = updateData.funFacts.split(',').map((f) => f.trim()).filter(Boolean);
+    }
+
+    // Process new uploaded images
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map((file) => `/uploads/${file.filename}`);
+      updateData.images = newImages;
+      updateData.imageUrl = newImages[0];
+    } else if (updateData.imageUrl && !updateData.images) {
+      updateData.images = [updateData.imageUrl];
+    }
+
+    // Handle coordinates update
+    if (updateData.lat !== undefined && updateData.lng !== undefined) {
+      updateData.coordinates = {
+        lat: parseFloat(updateData.lat),
+        lng: parseFloat(updateData.lng),
+        locationName: updateData.locationName || '',
+      };
+    }
+
+    const plant = await Plant.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!plant) {
+      return res.status(404).json({ success: false, message: 'Plant not found.' });
+    }
+
+    res.json({ success: true, message: 'Plant updated successfully.', data: plant });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+exports.deletePlant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const plant = await Plant.findByIdAndDelete(id);
+
+    if (!plant) {
+      return res.status(404).json({ success: false, message: 'Plant not found.' });
+    }
+
+    res.json({ success: true, message: `Plant "${plant.name}" deleted successfully.` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

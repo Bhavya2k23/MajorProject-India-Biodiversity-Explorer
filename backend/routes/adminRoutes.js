@@ -84,4 +84,15 @@ router.post(  '/quiz',     adminAuth, adminController.createQuestion);
 router.put(   '/quiz/:id', adminAuth, adminController.updateQuestion);
 router.delete('/quiz/:id', adminAuth, adminController.deleteQuestion);
 
+// ─── Plant Management ─────────────────────────────────────────
+// GET    /api/admin/plants
+// POST   /api/admin/plants
+// PUT    /api/admin/plants/:id
+// DELETE /api/admin/plants/:id
+const plantController = require('../controllers/plantController');
+router.get(   '/plants',     adminAuth, plantController.getAllPlantsAdmin);
+router.post(  '/plants',     adminAuth, upload.array('images', 5), plantController.createPlant);
+router.put(   '/plants/:id', adminAuth, upload.array('images', 5), plantController.updatePlant);
+router.delete('/plants/:id', adminAuth, plantController.deletePlant);
+
 module.exports = router;

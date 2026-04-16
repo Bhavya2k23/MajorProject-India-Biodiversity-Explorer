@@ -56,7 +56,8 @@
       "Bash(npm prune:*)",
       "Bash(tasklist)",
       "Bash(wmic process:*)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(dir \"C:\\\\India Biodivesity - Copy\")"
     ]
   }
 }
