@@ -123,6 +123,19 @@ exports.seedInitialAdmin = async (req, res) => {
 
 exports.getDashboardStats = async (req, res) => {
   try {
+    const { zone, ecosystem, conservationStatus, domain = 'all' } = req.query;
+
+    // Build filter for species queries
+    const speciesFilter = {};
+    if (zone) speciesFilter.zone = { $regex: zone, $options: 'i' };
+    if (ecosystem) speciesFilter.ecosystem = { $regex: ecosystem, $options: 'i' };
+    if (conservationStatus) speciesFilter.conservationStatus = conservationStatus;
+
+    // Determine which models to query based on domain
+    const includeAnimals = domain === 'all' || domain === 'animals';
+    const includePlants = domain === 'all' || domain === 'plants';
+
+    // Get counts and aggregations
     const [
       totalSpecies,
       endangeredCount,
@@ -133,41 +146,88 @@ exports.getDashboardStats = async (req, res) => {
       speciesByEcosystem,
       speciesByZone,
       recentSpecies,
+      plantStats,
     ] = await Promise.all([
-      Species.countDocuments(),
-      Species.countDocuments({
+      // Species (animals) counts and aggregations
+      includeAnimals ? Species.countDocuments(speciesFilter) : 0,
+      includeAnimals ? Species.countDocuments({
+        ...speciesFilter,
         conservationStatus: { $in: ['Critically Endangered', 'Endangered', 'Vulnerable'] },
-      }),
-      Ecosystem.countDocuments(),
-      Zone.countDocuments(),
+      }) : 0,
+      includeAnimals ? Species.distinct('ecosystem', speciesFilter).then(e => e.length) : 0,
+      includeAnimals ? Species.distinct('zone', speciesFilter).then(z => z.length) : 0,
       QuizQuestion.countDocuments(),
-      Species.aggregate([
+      includeAnimals ? Species.aggregate([
+        { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
         { $group: { _id: '$conservationStatus', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
-      ]),
-      // ecosystem is stored as a String — group directly on the field value
-      Species.aggregate([
+      ]) : [],
+      includeAnimals ? Species.aggregate([
+        { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
         { $group: { _id: { $ifNull: ['$ecosystem', 'Unknown'] }, count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
-      ]),
-      // zone is stored as a String — group directly on the field value
-      Species.aggregate([
+      ]) : [],
+      includeAnimals ? Species.aggregate([
+        { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
         { $group: { _id: { $ifNull: ['$zone', 'Unknown'] }, count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
-      ]),
-      Species.find()
+      ]) : [],
+      includeAnimals ? Species.find(Object.keys(speciesFilter).length > 0 ? speciesFilter : {})
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('name scientificName conservationStatus imageUrl createdAt'),
+        .select('name scientificName conservationStatus imageUrl createdAt') : [],
+      // Plant counts and aggregations
+      includePlants ? Plant.countDocuments(speciesFilter) : 0,
+    ]);
+
+    // Get plant aggregations if needed
+    let plantByConservation = [];
+    let plantByEcosystem = [];
+    let plantByZone = [];
+    if (includePlants) {
+      const [pbc, pbe, pbz] = await Promise.all([
+        Plant.aggregate([
+          { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
+          { $group: { _id: '$conservationStatus', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+        Plant.aggregate([
+          { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
+          { $group: { _id: { $ifNull: ['$ecosystem', 'Unknown'] }, count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 10 },
+        ]),
+        Plant.aggregate([
+          { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
+          { $group: { _id: { $ifNull: ['$zone', 'Unknown'] }, count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 10 },
+        ]),
+      ]);
+      plantByConservation = pbc;
+      plantByEcosystem = pbe;
+      plantByZone = pbz;
+    }
+
+    // Get unique filter options for dropdowns
+    const [availableZones, availableEcosystems, availableStatuses] = await Promise.all([
+      Species.distinct('zone'),
+      Species.distinct('ecosystem'),
+      Species.aggregate([
+        { $group: { _id: '$conservationStatus' } },
+        { $sort: { _id: 1 } },
+      ]).then(res => res.map(r => r._id)),
     ]);
 
     res.json({
       success: true,
       data: {
         overview: {
-          totalSpecies,
+          totalSpecies: totalSpecies + plantStats,
+          totalAnimals: totalSpecies,
+          totalPlants: plantStats,
           endangeredCount,
           totalEcosystems,
           totalZones,
@@ -175,10 +235,18 @@ exports.getDashboardStats = async (req, res) => {
         },
         charts: {
           speciesByConservation,
+          plantByConservation,
           speciesByEcosystem,
+          plantByEcosystem,
           speciesByZone,
+          plantByZone,
         },
         recentSpecies,
+        filters: {
+          zones: availableZones.sort(),
+          ecosystems: availableEcosystems.sort(),
+          statuses: availableStatuses,
+        },
       },
     });
   } catch (error) {
