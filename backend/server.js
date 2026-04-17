@@ -89,6 +89,9 @@ const {
 // ─── Create Express app ────────────────────────────────────────
 const app = express();
 
+// ─── Trust Proxy (for rate limiter IP detection behind reverse proxy) ───
+app.set('trust proxy', 1);
+
 // ─── Security: Helmet ─────────────────────────────────────────
 if (helmet) {
   app.use(helmet());

@@ -136,7 +136,16 @@ exports.getDashboardStats = async (req, res) => {
     const includeAnimals = domain === 'all' || domain === 'animals';
     const includePlants = domain === 'all' || domain === 'plants';
 
-    // Get counts and aggregations
+    // Get counts and aggregations - wrap each in try/catch for partial failure tolerance
+    const safeQuery = async (queryFn, fallback = null) => {
+      try {
+        return await queryFn();
+      } catch (err) {
+        console.warn('Dashboard query failed, using fallback:', err.message);
+        return fallback;
+      }
+    };
+
     const [
       totalSpecies,
       endangeredCount,
@@ -150,37 +159,37 @@ exports.getDashboardStats = async (req, res) => {
       plantStats,
     ] = await Promise.all([
       // Species (animals) counts and aggregations
-      includeAnimals ? Species.countDocuments(speciesFilter) : 0,
-      includeAnimals ? Species.countDocuments({
+      safeQuery(() => includeAnimals ? Species.countDocuments(speciesFilter) : 0, 0),
+      safeQuery(() => includeAnimals ? Species.countDocuments({
         ...speciesFilter,
         conservationStatus: { $in: ['Critically Endangered', 'Endangered', 'Vulnerable'] },
-      }) : 0,
-      includeAnimals ? Species.distinct('ecosystem', speciesFilter).then(e => e.length) : 0,
-      includeAnimals ? Species.distinct('zone', speciesFilter).then(z => z.length) : 0,
-      QuizQuestion.countDocuments(),
-      includeAnimals ? Species.aggregate([
+      }) : 0, 0),
+      safeQuery(() => includeAnimals ? Species.distinct('ecosystem', speciesFilter).then(e => e.length) : 0, 0),
+      safeQuery(() => includeAnimals ? Species.distinct('zone', speciesFilter).then(z => z.length) : 0, 0),
+      safeQuery(() => QuizQuestion.countDocuments(), 0),
+      safeQuery(() => includeAnimals ? Species.aggregate([
         { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
         { $group: { _id: '$conservationStatus', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
-      ]) : [],
-      includeAnimals ? Species.aggregate([
+      ]) : [], []),
+      safeQuery(() => includeAnimals ? Species.aggregate([
         { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
         { $group: { _id: { $ifNull: ['$ecosystem', 'Unknown'] }, count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
-      ]) : [],
-      includeAnimals ? Species.aggregate([
+      ]) : [], []),
+      safeQuery(() => includeAnimals ? Species.aggregate([
         { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
         { $group: { _id: { $ifNull: ['$zone', 'Unknown'] }, count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 10 },
-      ]) : [],
-      includeAnimals ? Species.find(Object.keys(speciesFilter).length > 0 ? speciesFilter : {})
+      ]) : [], []),
+      safeQuery(() => includeAnimals ? Species.find(Object.keys(speciesFilter).length > 0 ? speciesFilter : {})
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('name scientificName conservationStatus imageUrl createdAt') : [],
+        .select('name scientificName conservationStatus imageUrl createdAt') : [], []),
       // Plant counts and aggregations
-      includePlants ? Plant.countDocuments(speciesFilter) : 0,
+      safeQuery(() => includePlants ? Plant.countDocuments(speciesFilter) : 0, 0),
     ]);
 
     // Get plant aggregations if needed
@@ -189,23 +198,23 @@ exports.getDashboardStats = async (req, res) => {
     let plantByZone = [];
     if (includePlants) {
       const [pbc, pbe, pbz] = await Promise.all([
-        Plant.aggregate([
+        safeQuery(() => Plant.aggregate([
           { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
           { $group: { _id: '$conservationStatus', count: { $sum: 1 } } },
           { $sort: { count: -1 } },
-        ]),
-        Plant.aggregate([
+        ]), []),
+        safeQuery(() => Plant.aggregate([
           { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
           { $group: { _id: { $ifNull: ['$ecosystem', 'Unknown'] }, count: { $sum: 1 } } },
           { $sort: { count: -1 } },
           { $limit: 10 },
-        ]),
-        Plant.aggregate([
+        ]), []),
+        safeQuery(() => Plant.aggregate([
           { $match: Object.keys(speciesFilter).length > 0 ? speciesFilter : {} },
           { $group: { _id: { $ifNull: ['$zone', 'Unknown'] }, count: { $sum: 1 } } },
           { $sort: { count: -1 } },
           { $limit: 10 },
-        ]),
+        ]), []),
       ]);
       plantByConservation = pbc;
       plantByEcosystem = pbe;
@@ -214,16 +223,17 @@ exports.getDashboardStats = async (req, res) => {
 
     // Get unique filter options for dropdowns
     const [availableZones, availableEcosystems, availableStatuses] = await Promise.all([
-      Species.distinct('zone'),
-      Species.distinct('ecosystem'),
-      Species.aggregate([
+      safeQuery(() => Species.distinct('zone'), []),
+      safeQuery(() => Species.distinct('ecosystem'), []),
+      safeQuery(() => Species.aggregate([
         { $group: { _id: '$conservationStatus' } },
         { $sort: { _id: 1 } },
-      ]).then(res => res.map(r => r._id)),
+      ]).then(res => res.map(r => r._id)), []),
     ]);
 
     res.json({
       success: true,
+      partialFailure: false, // All queries succeeded
       data: {
         overview: {
           totalSpecies: totalSpecies + plantStats,

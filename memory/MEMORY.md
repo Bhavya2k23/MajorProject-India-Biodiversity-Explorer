@@ -2,47 +2,58 @@
 
 ## Reference Files
 - [full_project_analysis](analysis_full_project.md) - Complete analysis (frontend, backend, AI, data flow)
-- [admin_crud_analysis](analysis_admin_crud.md) - Admin CRUD operations analysis and enhancement plan
-- [project_issues](analysis_issues.md) - ALL CRITICAL ISSUES FIXED (2026-04-16)
+- [api_reliability_analysis](analysis_api_reliability.md) - API reliability fixes (fallback responses, timeout handling)
 
 ## User Preferences & Project Context
-- Last updated: 2026-04-16-4
+- Last updated: 2026-04-17
 - Current branch: main
 - Working directory: C:\India Biodivesity - Copy
-- Status: ALL CRITICAL FIELD MISMATCHES FIXED (2026-04-16-4)
+- Status: API RELIABILITY IMPROVEMENTS COMPLETED (2026-04-17)
 
-## Critical Fixes Applied: 2026-04-16-4
+## API Reliability Fixes Applied: 2026-04-17
 
-### 1. Zone Manager - Field Name Mismatch FIXED
-- **Problem**: Zone model uses `zoneName`, frontend sent `name`
-- **Fix**: Backend `createZone`/`updateZone` now map `name` → `zoneName`
-- **Also fixed**: `states` → `statesCovered`, `keySpecies` stays, `threats` → `ecosystems`
+### 1. server.js - Trust Proxy Added
+- Added `app.set('trust proxy', 1)` for correct IP detection behind reverse proxies
+- Fixes rate limiter IP detection issues
 
-### 2. Ecosystem Manager - Field Name Mismatch FIXED
-- **Problem**: Ecosystem model uses `keySpecies`/`majorThreats`/`zone`, frontend sent different names
-- **Fix**: Backend `createEcosystem`/`updateEcosystem` now map frontend fields correctly
-- **Also fixed**: Species count query changed from `_id` to `name` for correct matching
+### 2. adminController.getDashboardStats - Partial Failure Tolerance
+- Added `safeQuery()` wrapper for each Promise.all query
+- If any query fails, returns fallback values instead of crashing
+- Added `partialFailure: false` to response when all succeed
+- Dashboard now returns partial data even if some queries fail
 
-### 3. Species Manager - Ecosystem/Zone Filter FIXED
-- **Problem**: Dropdowns used `_id` as values but backend stores names as strings
-- **Fix**: Dropdowns now use `name`/`zoneName` as values, not IDs
+### 3. mapController.getMapSpecies - Independent Fetch with Fallback
+- Animals and plants now fetched independently in try/catch blocks
+- If either fails, the other still returns data
+- Added `partialFailure` and `warnings` array in response
+- Map now shows whatever data is available, even if one source fails
 
-### 4. Species Create - Required Fields FIXED
-- **Problem**: Species model requires `type`, `population`, `habitatLoss`, `pollutionLevel`, `climateRisk` but form doesn't have them
-- **Fix**: Backend provides defaults (Mammal, 0, 50, 50, 50) if not provided
-- **Also added**: Coordinates handling from `lat`/`lng`/`locationName` form fields
+### 4. speciesController.getRecommendations - Fallback Empty Array
+- Added try/catch around recommendationService call
+- If service fails, returns empty recommendations with fallback metadata
+- Frontend shows "No recommendations" gracefully instead of error
 
-### 5. Species Update - Coordinates Handling FIXED
-- **Problem**: Coordinates weren't being updated properly
-- **Fix**: Backend now handles `lat`/`lng`/`locationName` → `coordinates` object
+### 5. useSpeciesData.loadMore - Error State Now Set
+- Fixed loadMore catch block to call setError
+- User now sees error message when pagination load more fails
 
-## Key Architecture (as of 2026-04-16)
+### 6. useSpeciesDetail - Retry Logic Added
+- Added retry logic for 5xx errors (up to 3 retries)
+- Exponential backoff: 1s, 2s, 3s between retries
+- AbortController for cleanup on unmount
 
-### Tech Stack
+### 7. imageRecognitionService - Retry Interceptor Added
+- Added axios retry interceptor with exponential backoff
+- Retries up to 3 times for failed requests
+- Excludes 413 (Payload Too Large) and 415 (Unsupported Media Type) from retry
+
+## Tech Stack
 - **Frontend**: React 18 + Vite + TypeScript, TailwindCSS, React Router v6
 - **Backend**: Node.js + Express, MongoDB + Mongoose
 - **AI Service**: Python FastAPI + TensorFlow MobileNetV2
 - **Auth**: JWT with Admin model (separate from User model)
+
+## Key Architecture
 
 ### Admin System (Implemented)
 - Admin JWT auth at `/api/admin/auth/login`

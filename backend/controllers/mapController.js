@@ -88,92 +88,110 @@ exports.getMapSpecies = async (req, res, next) => {
 
     let animalData = [];
     let plantData = [];
+    let animalError = null;
+    let plantError = null;
 
     // Fetch animals
     if (filter === "all" || filter === "animals") {
-      const animals = await Species.find(animalsFilter)
-        .select("name scientificName type conservationStatus zone ecosystem imageUrl coordinates")
-        .lean();
+      try {
+        const animals = await Species.find(animalsFilter)
+          .select("name scientificName type conservationStatus zone ecosystem imageUrl coordinates")
+          .lean();
 
-      animalData = animals.map((s) => {
-        // Use real coordinates if available, otherwise use zone center
-        let lat = s.coordinates?.lat ?? null;
-        let lng = s.coordinates?.lng ?? null;
-        let locationName = s.coordinates?.locationName || "";
+        animalData = animals.map((s) => {
+          // Use real coordinates if available, otherwise use zone center
+          let lat = s.coordinates?.lat ?? null;
+          let lng = s.coordinates?.lng ?? null;
+          let locationName = s.coordinates?.locationName || "";
 
-        // Fallback to zone center (deterministic, not random)
-        if (lat === null || lng === null) {
-          const zc = getZoneCoordinates(s.zone);
-          // Add small deterministic offset based on species name hash to avoid stacking
-          const hash = (s.name || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-          const offset = (hash % 100) / 1000; // 0-0.1 degree offset
-          lat = zc.lat + offset;
-          lng = zc.lng + offset;
-          locationName = s.zone || ""; // Label with zone name instead of random
-        }
+          // Fallback to zone center (deterministic, not random)
+          if (lat === null || lng === null) {
+            const zc = getZoneCoordinates(s.zone);
+            // Add small deterministic offset based on species name hash to avoid stacking
+            const hash = (s.name || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+            const offset = (hash % 100) / 1000; // 0-0.1 degree offset
+            lat = zc.lat + offset;
+            lng = zc.lng + offset;
+            locationName = s.zone || ""; // Label with zone name instead of random
+          }
 
-        return {
-          id: s._id.toString(),
-          name: s.name,
-          scientificName: s.scientificName,
-          type: s.type,
-          conservationStatus: s.conservationStatus,
-          zone: s.zone,
-          ecosystem: s.ecosystem,
-          imageUrl: s.imageUrl || "",
-          category: "animal",
-          lat,
-          lng,
-          locationName,
-        };
-      });
+          return {
+            id: s._id.toString(),
+            name: s.name,
+            scientificName: s.scientificName,
+            type: s.type,
+            conservationStatus: s.conservationStatus,
+            zone: s.zone,
+            ecosystem: s.ecosystem,
+            imageUrl: s.imageUrl || "",
+            category: "animal",
+            lat,
+            lng,
+            locationName,
+          };
+        });
+      } catch (err) {
+        console.warn('Animals query failed:', err.message);
+        animalError = err.message;
+      }
     }
 
     // Fetch plants
     if (filter === "all" || filter === "plants") {
-      const plants = await Plant.find(plantsFilter)
-        .select("name scientificName type conservationStatus zone ecosystem imageUrl coordinates")
-        .lean();
+      try {
+        const plants = await Plant.find(plantsFilter)
+          .select("name scientificName type conservationStatus zone ecosystem imageUrl coordinates")
+          .lean();
 
-      plantData = plants.map((p) => {
-        let lat = p.coordinates?.lat ?? null;
-        let lng = p.coordinates?.lng ?? null;
-        let locationName = p.coordinates?.locationName || "";
+        plantData = plants.map((p) => {
+          let lat = p.coordinates?.lat ?? null;
+          let lng = p.coordinates?.lng ?? null;
+          let locationName = p.coordinates?.locationName || "";
 
-        if (lat === null || lng === null) {
-          const zc = getZoneCoordinates(p.zone);
-          const hash = (p.name || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-          const offset = (hash % 100) / 1000;
-          lat = zc.lat + offset;
-          lng = zc.lng + offset;
-          locationName = p.zone || "";
-        }
+          if (lat === null || lng === null) {
+            const zc = getZoneCoordinates(p.zone);
+            const hash = (p.name || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+            const offset = (hash % 100) / 1000;
+            lat = zc.lat + offset;
+            lng = zc.lng + offset;
+            locationName = p.zone || "";
+          }
 
-        return {
-          id: p._id.toString(),
-          name: p.name,
-          scientificName: p.scientificName,
-          type: p.type,
-          conservationStatus: p.conservationStatus,
-          zone: p.zone,
-          ecosystem: p.ecosystem,
-          imageUrl: p.imageUrl || "",
-          category: "plant",
-          lat,
-          lng,
-          locationName,
-        };
-      });
+          return {
+            id: p._id.toString(),
+            name: p.name,
+            scientificName: p.scientificName,
+            type: p.type,
+            conservationStatus: p.conservationStatus,
+            zone: p.zone,
+            ecosystem: p.ecosystem,
+            imageUrl: p.imageUrl || "",
+            category: "plant",
+            lat,
+            lng,
+            locationName,
+          };
+        });
+      } catch (err) {
+        console.warn('Plants query failed:', err.message);
+        plantError = err.message;
+      }
     }
 
     const allData = [...animalData, ...plantData];
+    const partialFailure = !!(animalError || plantError);
 
     res.status(200).json({
-      success: true,
+      success: !partialFailure, // false if any query failed
+      partialFailure,
       total: allData.length,
       animalsCount: animalData.length,
       plantsCount: plantData.length,
       data: allData,
+      warnings: [
+        animalError ? `Animals: ${animalError}` : null,
+        plantError ? `Plants: ${plantError}` : null,
+      ].filter(Boolean),
     });
   } catch (error) {
     next(error);

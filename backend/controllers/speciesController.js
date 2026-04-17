@@ -195,7 +195,23 @@ exports.getRecommendations = async (req, res, next) => {
     const speciesId = req.params.id;
     const limit = Math.min(parseInt(req.query.limit) || 5, 10);
 
-    const result = await recommendationService.getRecommendations(speciesId, { limit });
+    let result;
+    try {
+      result = await recommendationService.getRecommendations(speciesId, { limit });
+    } catch (recError) {
+      // Fallback: return empty recommendations if service fails
+      console.warn('Recommendation service failed, returning empty:', recError.message);
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+        metadata: {
+          responseTimeMs: 0,
+          algorithm: 'fallback',
+          error: 'Recommendation service unavailable',
+        },
+      });
+    }
 
     // Validate and refresh recommendation images (small number, can do synchronously)
     const recommendations = await Promise.all(result.recommendations.map(async (rec) => {

@@ -4,6 +4,7 @@
  * Features: LRU cache, MongoDB persistence, circuit breaker, request deduplication, exponential backoff
  */
 
+const logger = require("../utils/logger");
 const axios = require("axios");
 const CachedSpecies = require("../models/CachedSpecies");
 
@@ -182,12 +183,10 @@ const recordFailure = (service) => {
   if (cb.failures >= CONFIG.circuitBreaker.failureThreshold) {
     cb.isOpen = true;
     cb.nextAttempt = Date.now() + CONFIG.circuitBreaker.resetTimeout;
-    console.error(JSON.stringify({
-      type: "CIRCUIT_BREAKER_OPEN",
-      service,
-      message: `${service.toUpperCase()} circuit breaker opened after ${cb.failures} failures`,
+    logger.error(service, "CIRCUIT_BREAKER_OPEN", {
+      failures: cb.failures,
       nextAttempt: new Date(cb.nextAttempt).toISOString(),
-    }));
+    });
   }
 };
 
@@ -496,12 +495,10 @@ class ExternalDataService {
         }
       }
     } catch (error) {
-      console.error(JSON.stringify({
-        type: "GBIF_ERROR",
-        service: "gbif",
-        message: error.message,
-        timestamp: new Date().toISOString(),
-      }));
+      logger.error("external-data", "GBIF_ERROR", {
+        species: name,
+        error: error.message,
+      });
       // Graceful degradation - continue with partial data
     }
 
