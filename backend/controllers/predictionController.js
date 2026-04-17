@@ -1,5 +1,6 @@
 const { spawn } = require("child_process");
 const path = require("path");
+const logger = require("../utils/logger");
 
 // Rule-based fallback prediction (if Python script unavailable)
 const ruleBasedPrediction = ({ population, habitatLoss, pollutionLevel, climateRisk }) => {
@@ -36,6 +37,8 @@ exports.predictStatus = async (req, res, next) => {
       climateRisk: Number(climateRisk),
     };
 
+    logger.info("prediction", "ML prediction request received", { input: inputData });
+
     // Try Python ML model first
     // NOTE: On Windows use 'python'; on Linux/macOS use 'python3'
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
@@ -62,6 +65,7 @@ exports.predictStatus = async (req, res, next) => {
       if (!responded) {
         python.kill();
         const prediction = ruleBasedPrediction(inputData);
+        logger.warn("prediction", "Python ML timeout - using rule-based fallback", { input: inputData });
         respondOnce({
           success: true,
           input: inputData,
@@ -77,6 +81,7 @@ exports.predictStatus = async (req, res, next) => {
       if (code === 0 && pythonOutput) {
         try {
           const prediction = JSON.parse(pythonOutput.trim());
+          logger.info("prediction", "ML prediction completed", { input: inputData, model: "ML (Decision Tree)" });
           respondOnce({
             success: true,
             input: inputData,
@@ -86,10 +91,12 @@ exports.predictStatus = async (req, res, next) => {
           return;
         } catch {
           // Fall through to rule-based
+          logger.warn("prediction", "Python output parse failed - using rule-based fallback");
         }
       }
       // Fallback to rule-based prediction
       const prediction = ruleBasedPrediction(inputData);
+      logger.info("prediction", "Using rule-based prediction (Python fallback)", { input: inputData });
       respondOnce({
         success: true,
         input: inputData,
@@ -98,9 +105,10 @@ exports.predictStatus = async (req, res, next) => {
       });
     });
 
-    python.on("error", () => {
+    python.on("error", (err) => {
       clearTimeout(timeout);
       if (responded) return;
+      logger.error("prediction", "Python spawn error - using rule-based fallback", { error: err.message });
       const prediction = ruleBasedPrediction(inputData);
       respondOnce({
         success: true,
@@ -110,6 +118,7 @@ exports.predictStatus = async (req, res, next) => {
       });
     });
   } catch (error) {
+    logger.error("prediction", "Prediction controller error", { error: error.message });
     next(error);
   }
 };

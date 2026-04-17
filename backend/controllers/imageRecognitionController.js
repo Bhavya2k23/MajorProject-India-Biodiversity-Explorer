@@ -2,6 +2,7 @@ const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
 const PredictionHistory = require("../models/PredictionHistory");
+const logger = require("../utils/logger");
 
 // ─── Config ────────────────────────────────────────────────────
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
@@ -65,7 +66,7 @@ async function callAIService(fileBuffer, filename, mimetype, retries = 2) {
       if (isRateLimited && !isLastAttempt) {
         const retryAfter = aiErr.response?.headers?.["retry-after"];
         const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : Math.min(2000 * Math.pow(2, attempt), 10000);
-        console.warn(`[ImageRecognition] AI service rate limited (attempt ${attempt + 1}/${retries + 1}). Retrying in ${waitMs}ms...`);
+        logger.warn("image-recognition", `AI service rate limited (attempt ${attempt + 1}/${retries + 1}). Retrying in ${waitMs}ms`);
         await new Promise(resolve => setTimeout(resolve, waitMs));
         continue;
       }
@@ -109,12 +110,14 @@ exports.recognizeSpecies = async (req, res, next) => {
     }
 
     const startTime = Date.now();
+    logger.info("image-recognition", "Image upload received", { fileSize: req.file.size, mimeType: req.file.mimetype });
 
     // Read file from disk (buffer is only available with memory storage)
     let fileBuffer;
     try {
       fileBuffer = fs.readFileSync(req.file.path);
     } catch (readErr) {
+      logger.error("image-recognition", "Failed to read uploaded file", { error: readErr.message });
       return res.status(500).json({
         success: false,
         message: "Failed to read uploaded file.",
@@ -125,7 +128,7 @@ exports.recognizeSpecies = async (req, res, next) => {
     const isHealthy = await checkAIServiceHealth();
     let useMock = false;
     if (!isHealthy) {
-      console.warn("[ImageRecognition] AI service unavailable — using mock predictions");
+      logger.warn("image-recognition", "AI service unavailable — using mock predictions");
       useMock = true;
     }
 
@@ -138,7 +141,7 @@ exports.recognizeSpecies = async (req, res, next) => {
         req.file.mimetype
       );
     } catch (aiErr) {
-      console.error("[ImageRecognition] AI service error:", aiErr.message);
+      logger.error("image-recognition", "AI service call failed", { error: aiErr.message });
 
       if (aiErr.code === "SERVICE_UNAVAILABLE") {
         useMock = true;
@@ -188,8 +191,10 @@ exports.recognizeSpecies = async (req, res, next) => {
           mockPrediction: true,  // Track that this was a mock/fallback prediction
         });
       } catch (dbErr) {
-        console.error("[ImageRecognition] Failed to save history:", dbErr.message);
+        logger.error("image-recognition", "Failed to save history", { error: dbErr.message });
       }
+
+      logger.info("image-recognition", "Mock prediction served", { processingTimeMs, topPrediction: top.label });
 
       return res.status(200).json({
         success: true,
@@ -230,8 +235,10 @@ exports.recognizeSpecies = async (req, res, next) => {
       });
     } catch (dbErr) {
       // Non-fatal: log but don't fail the request
-      console.error("[ImageRecognition] Failed to save history:", dbErr.message);
+      logger.error("image-recognition", "Failed to save prediction history", { error: dbErr.message });
     }
+
+    logger.info("image-recognition", "Real AI prediction served", { processingTimeMs, topPrediction: topPrediction.label });
 
     res.status(200).json({
       success: true,
@@ -250,6 +257,7 @@ exports.recognizeSpecies = async (req, res, next) => {
       },
     });
   } catch (err) {
+    logger.error("image-recognition", "Unexpected error in recognizeSpecies", { error: err.message, stack: err.stack });
     next(err);
   }
 };
@@ -286,6 +294,7 @@ exports.getPredictionHistory = async (req, res, next) => {
       },
     });
   } catch (err) {
+    logger.error("image-recognition", "Failed to get prediction history", { error: err.message });
     next(err);
   }
 };
@@ -297,11 +306,13 @@ exports.getPredictionHistory = async (req, res, next) => {
 exports.clearPredictionHistory = async (req, res, next) => {
   try {
     const result = await PredictionHistory.deleteMany({});
+    logger.info("image-recognition", "Prediction history cleared", { deletedCount: result.deletedCount });
     res.status(200).json({
       success: true,
       message: `Deleted ${result.deletedCount} prediction records.`,
     });
   } catch (err) {
+    logger.error("image-recognition", "Failed to clear prediction history", { error: err.message });
     next(err);
   }
 };
