@@ -176,6 +176,67 @@ if (morgan && process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
+// ─── Structured Request/Response Logging Middleware ────────────
+const logger = require("./utils/logger");
+
+// Skip logging for these paths
+const LOGGING_SKIP_PATHS = ["/health", "/api/health"];
+const LOGGING_SKIP_PATTERNS = ["/uploads"];
+
+app.use((req, res, next) => {
+  // Skip health checks and static files
+  if (LOGGING_SKIP_PATHS.includes(req.path) || req.path.startsWith("/uploads")) {
+    return next();
+  }
+
+  const startTime = Date.now();
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  // Attach request ID for tracing
+  req.requestId = requestId;
+
+  // Log incoming request
+  logger.info("http", `REQUEST ${req.method} ${req.originalUrl}`, {
+    requestId,
+    method: req.method,
+    path: req.originalUrl,
+    query: req.query,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  });
+
+  // Capture response
+  const originalSend = res.send;
+  res.send = function (body) {
+    const duration = Date.now() - startTime;
+    const statusCode = res.statusCode;
+
+    // Log response
+    const logLevel = statusCode >= 500 ? "error" : statusCode >= 400 ? "warn" : "info";
+    logger[logLevel]("http", `RESPONSE ${req.method} ${req.originalUrl} -> ${statusCode}`, {
+      requestId,
+      method: req.method,
+      path: req.originalUrl,
+      statusCode,
+      durationMs: duration,
+      contentLength: res.get("content-length"),
+    });
+
+    // Warn if slow request (>2s)
+    if (duration > 2000) {
+      logger.warn("http", `SLOW REQUEST ${req.method} ${req.originalUrl}`, {
+        requestId,
+        durationMs: duration,
+        threshold: 2000,
+      });
+    }
+
+    return originalSend.call(this, body);
+  };
+
+  next();
+});
+
 // ══════════════════════════════════════════════════════════════
 // ROUTES
 // ══════════════════════════════════════════════════════════════
