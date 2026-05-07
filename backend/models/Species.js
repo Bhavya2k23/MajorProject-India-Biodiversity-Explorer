@@ -11,6 +11,7 @@ const speciesSchema = new mongoose.Schema(
       type: String,
       required: [true, "Scientific name is required"],
       trim: true,
+      unique: true,
     },
     type: {
       type: String,
@@ -37,7 +38,6 @@ const speciesSchema = new mongoose.Schema(
       required: true,
       min: 0,
       max: 100,
-      comment: "Percentage 0-100",
     },
     pollutionLevel: {
       type: Number,
@@ -60,10 +60,29 @@ const speciesSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    image: {
+    habitat: {
       type: String,
       default: "",
     },
+    threats: [String],
+    funFacts: [String],
+    coordinates: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+      locationName: { type: String, default: "" },
+    },
+    imageUrl: {
+      type: String,
+    },
+    image: {
+      type: String, // Kept for backward compatibility
+      default: "",
+    },
+    images: [
+      {
+        type: String,
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

@@ -1,4 +1,5 @@
 const Species = require("../models/Species");
+const Plant = require("../models/Plant");
 const Ecosystem = require("../models/Ecosystem");
 const Zone = require("../models/Zone");
 
@@ -35,6 +36,7 @@ exports.chatbot = async (req, res, next) => {
 
     const keywords = extractKeywords(query);
     const intent = detectIntent(query);
+    const lower = query.toLowerCase();
     const regex = new RegExp(keywords.join("|"), "i");
 
     let response = {};
@@ -73,20 +75,42 @@ exports.chatbot = async (req, res, next) => {
 
       message = `Here are ${species.length} endangered species in our database.`;
       response = { type: "species", data: species };
-    } else {
-      // Default: search species
-      const species = keywords.length > 0
-        ? await Species.find({
-            $or: [{ name: regex }, { scientificName: regex }, { description: regex }],
-          }).limit(3)
-        : [];
+    } else if (intent === "plants" || lower.includes("plant") || lower.includes("tree") || lower.includes("herb") || lower.includes("flower")) {
+      const plants = keywords.length > 0
+        ? await Plant.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(3)
+        : await Plant.find({ conservationStatus: { $in: ["Endangered", "Critically Endangered"] } }).limit(5).select("name scientificName conservationStatus type zone ecosystem");
 
-      if (species.length > 0) {
-        const s = species[0];
-        message = `I found information about ${s.name} (${s.scientificName}). It is a ${s.type} found in the ${s.zone} zone. Conservation status: ${s.conservationStatus}. Population: ~${s.population.toLocaleString()}.`;
-        response = { type: "species", data: species };
+      if (plants.length > 0) {
+        const p = plants[0];
+        const useStr = p.uses?.slice(0, 2).join("; ") || "ecological significance";
+        message = `🌿 **${p.name}** (*${p.scientificName}*) is a ${p.type} found in the ${p.zone} zone (${p.ecosystem} ecosystem). Conservation status: **${p.conservationStatus}**. Uses: ${useStr}.`;
+        response = { type: "plants", data: plants };
       } else {
-        message = "I couldn't find specific information for your query. Try searching for species like 'Tiger', 'Elephant', or 'Snow Leopard'.";
+        message = "No plants found for your query. Try 'Neem', 'Tulsi', 'Sandalwood', or 'Brahma Kamal'.";
+        response = { type: "none", data: [] };
+      }
+    } else {
+      // Default: search both species and plants
+      const [speciesResults, plantResults] = await Promise.all([
+        keywords.length > 0
+          ? Species.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(3)
+          : [],
+        keywords.length > 0
+          ? Plant.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(2)
+          : [],
+      ]);
+
+      if (speciesResults.length > 0) {
+        const s = speciesResults[0];
+        message = `🦁 **${s.name}** (*${s.scientificName}*) is a ${s.type} found in the ${s.zone} zone. Conservation status: **${s.conservationStatus}**. Population: ~${(s.population || 0).toLocaleString()}. ${s.threats?.length ? `Key threats: ${s.threats.slice(0, 2).join(", ")}.` : ""}`;
+        response = { type: "species", data: speciesResults };
+      } else if (plantResults.length > 0) {
+        const p = plantResults[0];
+        const useStr = p.uses?.slice(0, 2).join("; ") || "ecological significance";
+        message = `🌿 **${p.name}** (*${p.scientificName}*) is a ${p.type} in the ${p.zone} zone. Conservation status: **${p.conservationStatus}**. Uses: ${useStr}.`;
+        response = { type: "plants", data: plantResults };
+      } else {
+        message = "I couldn't find specific information for your query. Try searching for animals like 'Tiger', 'Elephant' or plants like 'Neem', 'Tulsi', 'Sandalwood'. You can also ask about 'endangered species' or 'Western Ghats ecosystem'.";
         response = { type: "none", data: [] };
       }
     }

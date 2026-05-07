@@ -37,20 +37,25 @@ exports.predictStatus = async (req, res, next) => {
     };
 
     // Try Python ML model first
+    // NOTE: On Windows use 'python'; on Linux/macOS use 'python3'
+    const pythonCmd = process.platform === "win32" ? "python" : "python3";
     const pythonScriptPath = path.join(__dirname, "../ml/predict.py");
 
-    const python = spawn("python3", [pythonScriptPath, JSON.stringify(inputData)]);
+    const python = spawn(pythonCmd, [pythonScriptPath, JSON.stringify(inputData)]);
 
     let pythonOutput = "";
     let pythonError = "";
+    let responded = false;
 
     python.stdout.on("data", (data) => { pythonOutput += data.toString(); });
     python.stderr.on("data", (data) => { pythonError += data.toString(); });
 
     python.on("close", (code) => {
+      if (responded) return;
       if (code === 0 && pythonOutput) {
         try {
           const prediction = JSON.parse(pythonOutput.trim());
+          responded = true;
           return res.status(200).json({
             success: true,
             input: inputData,
@@ -63,6 +68,7 @@ exports.predictStatus = async (req, res, next) => {
       }
 
       // Fallback to rule-based prediction
+      responded = true;
       const prediction = ruleBasedPrediction(inputData);
       return res.status(200).json({
         success: true,
@@ -74,6 +80,8 @@ exports.predictStatus = async (req, res, next) => {
 
     python.on("error", () => {
       // Python not available - use rule-based
+      if (responded) return;
+      responded = true;
       const prediction = ruleBasedPrediction(inputData);
       return res.status(200).json({
         success: true,

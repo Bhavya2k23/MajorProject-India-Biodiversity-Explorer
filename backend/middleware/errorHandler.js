@@ -1,44 +1,31 @@
-// Centralized error handler
 const errorHandler = (err, req, res, next) => {
-  let statusCode = err.statusCode || 500;
-  let message = err.message || "Internal Server Error";
+  let error = { ...err };
+  error.message = err.message;
+
+  // Log to console for dev
+  console.error(err);
 
   // Mongoose bad ObjectId
-  if (err.name === "CastError") {
-    statusCode = 404;
-    message = `Resource not found with id: ${err.value}`;
+  if (err.name === 'CastError') {
+    const message = `Resource not found with id of ${err.value}`;
+    error = { message, statusCode: 404 };
   }
 
   // Mongoose duplicate key
   if (err.code === 11000) {
-    statusCode = 400;
-    const field = Object.keys(err.keyValue)[0];
-    message = `Duplicate value for field: ${field}`;
+    const message = 'Duplicate field value entered';
+    error = { message, statusCode: 400 };
   }
 
   // Mongoose validation error
-  if (err.name === "ValidationError") {
-    statusCode = 400;
-    message = Object.values(err.errors)
-      .map((e) => e.message)
-      .join(", ");
+  if (err.name === 'ValidationError') {
+    const message = Object.values(err.errors).map(val => val.message).join(', ');
+    error = { message, statusCode: 400 };
   }
 
-  // JWT errors
-  if (err.name === "JsonWebTokenError") {
-    statusCode = 401;
-    message = "Invalid token";
-  }
-
-  if (err.name === "TokenExpiredError") {
-    statusCode = 401;
-    message = "Token expired";
-  }
-
-  res.status(statusCode).json({
+  res.status(error.statusCode || 500).json({
     success: false,
-    message,
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    error: error.message || 'Server Error',
   });
 };
 
