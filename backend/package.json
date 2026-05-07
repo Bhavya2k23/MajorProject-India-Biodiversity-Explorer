@@ -4,11 +4,17 @@
   "description": "AI Powered Biodiversity Intelligence & Conservation Platform - Backend API",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "seed": "node services/seedData.js"
+    "start":        "node server.js",
+    "dev":          "nodemon server.js",
+    "seed":         "node scripts/seedData.js",
+    "seed:clear":   "node scripts/seedData.js --clear",
+    "deduplicate":  "node scripts/deduplicateSpecies.js",
+    "fix-images":   "node scripts/fixSpeciesImages.js",
+    "fix-species":  "node scripts/fixSpeciesImages.js",
+    "download-assets": "node scripts/downloadLocalAssets.js"
   },
   "dependencies": {
+<<<<<<< HEAD
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
@@ -20,9 +26,30 @@
     "mongoose": "^8.23.0",
     "morgan": "^1.10.1",
     "multer": "^2.1.1"
+=======
+    "axios":               "^1.6.0",
+    "bcryptjs":            "^2.4.3",
+    "cors":                "^2.8.5",
+    "dotenv":              "^16.3.1",
+    "express":             "^4.18.2",
+    "express-rate-limit":  "^7.1.5",
+    "express-validator":   "^7.0.1",
+    "form-data":           "^4.0.0",
+    "helmet":              "^7.1.0",
+    "jsonwebtoken":        "^9.0.2",
+    "mongoose":            "^8.0.3",
+    "morgan":              "^1.10.0",
+    "multer":              "^1.4.5-lts.1",
+    "node-cron":           "^3.0.3"
+>>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
+  },
+  "nodemonConfig": {
+    "watch": ["server.js", "config/**", "controllers/**", "middleware/**", "models/**", "routes/**", "services/**"],
+    "ext": "js,json,env",
+    "ignore": ["node_modules/**", "uploads/**", "scripts/**", "*.test.js"]
   },
   "engines": {
     "node": ">=18.0.0"

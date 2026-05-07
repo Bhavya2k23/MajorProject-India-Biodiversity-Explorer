@@ -1,0 +1,24 @@
+{
+  "watch": [
+    "server.js",
+    "config/",
+    "controllers/",
+    "middleware/",
+    "models/",
+    "routes/",
+    "services/"
+  ],
+  "ignore": [
+    "node_modules/**",
+    "uploads/**",
+    "scripts/**",
+    "*.test.js"
+  ],
+  "delay": "1000",
+  "restartable": "rs",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "ext": "js,json,env",
+  "verbose": true
+}

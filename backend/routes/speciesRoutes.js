@@ -10,12 +10,17 @@ const {
 } = require("../controllers/speciesController");
 const { protect, adminOnly } = require("../middleware/auth");
 const { speciesRules, validate } = require("../middleware/validation");
+const upload = require("../middleware/upload");
+
+// ─── CRITICAL: Static routes MUST come before /:id param routes ──
+// If "recommendations/:id" is placed after "/:id", Express will match
+// "recommendations" as the :id param — causing 404 or wrong controller
 
 const upload = require("../middleware/upload");
 
 // Public routes
 router.get("/", getAllSpecies);
-router.get("/recommendations/:id", getRecommendations);
+router.get("/recommendations/:id", getRecommendations); // ← MUST be before /:id
 router.get("/:id", getSpeciesById);
 
 // Admin protected routes
@@ -28,6 +33,10 @@ router.post(
   validate,
   createSpecies
 );
+<<<<<<< HEAD
+=======
+
+>>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 router.put(
   "/:id",
   protect,
@@ -36,7 +45,10 @@ router.put(
   updateSpecies
 );
 
+<<<<<<< HEAD
 // FIX: DELETE route was defined in controller but never registered — caused silent 404s
+=======
+>>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 router.delete("/:id", protect, adminOnly, deleteSpecies);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const { spawn } = require("child_process");
 const path = require("path");
+const logger = require("../utils/logger");
 
 // Rule-based fallback prediction (if Python script unavailable)
 const ruleBasedPrediction = ({ population, habitatLoss, pollutionLevel, climateRisk }) => {
@@ -36,11 +37,29 @@ exports.predictStatus = async (req, res, next) => {
       climateRisk: Number(climateRisk),
     };
 
+<<<<<<< HEAD
     // Try Python ML model first
     // NOTE: On Windows use 'python'; on Linux/macOS use 'python3'
     const pythonCmd = process.platform === "win32" ? "python" : "python3";
     const pythonScriptPath = path.join(__dirname, "../ml/predict.py");
 
+=======
+    logger.info("prediction", "ML prediction request received", { input: inputData });
+
+    // Try Python ML model first
+    // NOTE: On Windows use 'python'; on Linux/macOS use 'python3'
+    const pythonCmd = process.platform === "win32" ? "python" : "python3";
+    const pythonScriptPath = path.join(__dirname, "../services/predict.py");
+
+    let responded = false;
+    const respondOnce = (data) => {
+      if (!responded) {
+        responded = true;
+        return res.status(200).json(data);
+      }
+    };
+
+>>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     const python = spawn(pythonCmd, [pythonScriptPath, JSON.stringify(inputData)]);
 
     let pythonOutput = "";
@@ -50,27 +69,53 @@ exports.predictStatus = async (req, res, next) => {
     python.stdout.on("data", (data) => { pythonOutput += data.toString(); });
     python.stderr.on("data", (data) => { pythonError += data.toString(); });
 
+    // Safety timeout — if Python doesn't respond in 15s, fall back to rule-based
+    const timeout = setTimeout(() => {
+      if (!responded) {
+        python.kill();
+        const prediction = ruleBasedPrediction(inputData);
+        logger.warn("prediction", "Python ML timeout - using rule-based fallback", { input: inputData });
+        respondOnce({
+          success: true,
+          input: inputData,
+          prediction,
+          model: "Rule-Based (Timeout)",
+        });
+      }
+    }, 15000);
+
     python.on("close", (code) => {
+<<<<<<< HEAD
+=======
+      clearTimeout(timeout);
+>>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       if (responded) return;
       if (code === 0 && pythonOutput) {
         try {
           const prediction = JSON.parse(pythonOutput.trim());
+<<<<<<< HEAD
           responded = true;
           return res.status(200).json({
+=======
+          logger.info("prediction", "ML prediction completed", { input: inputData, model: "ML (Decision Tree)" });
+          respondOnce({
+>>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
             success: true,
             input: inputData,
             prediction,
             model: "ML (Decision Tree)",
           });
+          return;
         } catch {
           // Fall through to rule-based
+          logger.warn("prediction", "Python output parse failed - using rule-based fallback");
         }
       }
-
       // Fallback to rule-based prediction
       responded = true;
       const prediction = ruleBasedPrediction(inputData);
-      return res.status(200).json({
+      logger.info("prediction", "Using rule-based prediction (Python fallback)", { input: inputData });
+      respondOnce({
         success: true,
         input: inputData,
         prediction,
@@ -78,12 +123,19 @@ exports.predictStatus = async (req, res, next) => {
       });
     });
 
+<<<<<<< HEAD
     python.on("error", () => {
       // Python not available - use rule-based
       if (responded) return;
       responded = true;
+=======
+    python.on("error", (err) => {
+      clearTimeout(timeout);
+      if (responded) return;
+      logger.error("prediction", "Python spawn error - using rule-based fallback", { error: err.message });
+>>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       const prediction = ruleBasedPrediction(inputData);
-      return res.status(200).json({
+      respondOnce({
         success: true,
         input: inputData,
         prediction,
@@ -91,6 +143,7 @@ exports.predictStatus = async (req, res, next) => {
       });
     });
   } catch (error) {
+    logger.error("prediction", "Prediction controller error", { error: error.message });
     next(error);
   }
 };
