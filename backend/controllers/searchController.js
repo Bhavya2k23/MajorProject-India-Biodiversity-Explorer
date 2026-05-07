@@ -3,6 +3,7 @@ const Species = require("../models/Species");
 const Plant = require("../models/Plant");
 const Ecosystem = require("../models/Ecosystem");
 const Zone = require("../models/Zone");
+const { sendResponse } = require("../utils/apiResponse");
 
 // @desc    Global smart search across species, ecosystems, zones
 // @route   GET /api/search?q=keyword
@@ -45,12 +46,7 @@ exports.globalSearch = async (req, res, next) => {
 
     const totalResults = species.length + plants.length + ecosystems.length + zones.length;
 
-    res.status(200).json({
-      success: true,
-      query: q,
-      totalResults,
-      data: { species, plants, ecosystems, zones },
-    });
+    sendResponse(res, 200, { species, plants, ecosystems, zones }, `Found ${totalResults} results for "${q}"`);
   } catch (error) {
     next(error);
   }
@@ -64,7 +60,7 @@ exports.getSearchSuggestions = async (req, res, next) => {
     const { q } = req.query;
 
     if (!q || q.trim().length < 1) {
-      return res.json({ success: true, suggestions: [] });
+      return sendResponse(res, 200, [], "No query provided", true);
     }
 
     const query = q.trim();
@@ -120,7 +116,7 @@ exports.getSearchSuggestions = async (req, res, next) => {
     // Add contains matches
     [...animalContains, ...plantContains].forEach(s => addSuggestion(s, animalContains.includes(s) ? 'animal' : 'plant'));
 
-    res.json({ success: true, query, suggestions: suggestions.slice(0, 8) });
+    sendResponse(res, 200, suggestions.slice(0, 8), `Found ${suggestions.length} suggestions`);
   } catch (error) {
     next(error);
   }

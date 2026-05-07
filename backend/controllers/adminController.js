@@ -18,6 +18,7 @@ const Plant        = require('../models/Plant');
 const Ecosystem    = require('../models/Ecosystem');
 const Zone         = require('../models/Zone');
 const QuizQuestion = require('../models/QuizQuestion');
+const { sendResponse } = require('../utils/apiResponse');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'biodiversity_admin_jwt_secret_2024';
 const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
@@ -34,10 +35,7 @@ exports.login = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Username and password are required.',
-      });
+    sendResponse(res, 400, null, 'Username and password are required.', false);
     }
 
     // Allow login with username OR email.
@@ -68,9 +66,7 @@ exports.login = async (req, res) => {
     const token = generateToken(admin._id);
 
     // Return admin info without password (toJSON removes it automatically)
-    res.json({
-      success: true,
-      message: 'Login successful.',
+    sendResponse(res, 200, {
       token,
       admin: {
         id: admin._id,
@@ -79,7 +75,7 @@ exports.login = async (req, res) => {
         role: admin.role,
         avatar: admin.avatar,
       },
-    });
+    }, 'Login successful.');
   } catch (error) {
     console.error('Admin login error:', error);
     res.status(500).json({ success: false, message: 'Server error during login.' });
@@ -87,14 +83,14 @@ exports.login = async (req, res) => {
 };
 
 exports.getProfile = async (req, res) => {
-  res.json({ success: true, admin: req.admin });
+  sendResponse(res, 200, { admin: req.admin }, "Admin profile fetched successfully");
 };
 
 exports.seedInitialAdmin = async (req, res) => {
   try {
     const exists = await Admin.findOne({ username: 'admin' });
     if (exists) {
-      return res.json({ success: false, message: 'Admin already exists. Use login.' });
+      return sendResponse(res, 200, null, 'Admin already exists. Use login.', false);
     }
 
     await Admin.create({
@@ -104,17 +100,15 @@ exports.seedInitialAdmin = async (req, res) => {
       role: 'superadmin',
     });
 
-    res.status(201).json({
-      success: true,
-      message: 'Superadmin created successfully.',
+    sendResponse(res, 201, {
       credentials: {
         username: 'admin',
         password: 'Admin@123',
         note: 'Change this password after your first login!',
       },
-    });
+    }, 'Superadmin created successfully.');
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -231,38 +225,34 @@ exports.getDashboardStats = async (req, res) => {
       ]).then(res => res.map(r => r._id)), []),
     ]);
 
-    res.json({
-      success: true,
-      partialFailure: false, // All queries succeeded
-      data: {
-        overview: {
-          totalSpecies: totalSpecies + plantStats,
-          totalAnimals: totalSpecies,
-          totalPlants: plantStats,
-          endangeredCount,
-          totalEcosystems,
-          totalZones,
-          totalQuizQuestions,
-        },
-        charts: {
-          speciesByConservation,
-          plantByConservation,
-          speciesByEcosystem,
-          plantByEcosystem,
-          speciesByZone,
-          plantByZone,
-        },
-        recentSpecies,
-        filters: {
-          zones: availableZones.sort(),
-          ecosystems: availableEcosystems.sort(),
-          statuses: availableStatuses,
-        },
+    sendResponse(res, 200, {
+      overview: {
+        totalSpecies: totalSpecies + plantStats,
+        totalAnimals: totalSpecies,
+        totalPlants: plantStats,
+        endangeredCount,
+        totalEcosystems,
+        totalZones,
+        totalQuizQuestions,
       },
-    });
+      charts: {
+        speciesByConservation,
+        plantByConservation,
+        speciesByEcosystem,
+        plantByEcosystem,
+        speciesByZone,
+        plantByZone,
+      },
+      recentSpecies,
+      filters: {
+        zones: availableZones.sort(),
+        ecosystems: availableEcosystems.sort(),
+        statuses: availableStatuses,
+      },
+    }, "Dashboard stats fetched successfully");
   } catch (error) {
     console.error('Dashboard stats error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -298,8 +288,7 @@ exports.getAllSpeciesAdmin = async (req, res) => {
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit));
 
-    res.json({
-      success: true,
+    sendResponse(res, 200, {
       data: species,
       pagination: {
         total,
@@ -307,15 +296,26 @@ exports.getAllSpeciesAdmin = async (req, res) => {
         limit: parseInt(limit),
         pages: Math.ceil(total / parseInt(limit)),
       },
-    });
+    }, "Admin species list fetched successfully");
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
 exports.createSpecies = async (req, res) => {
   try {
     const speciesData = req.body;
+
+    // ── Uniqueness pre-check (FIX 11: duplicate prevention) ──────────
+    const rawName = (speciesData.name || '').trim();
+    if (!rawName) {
+      return res.status(400).json({ success: false, message: 'Species name is required.' });
+    }
+    const normalizedName = rawName.toLowerCase().replace(/\s+/g, ' ');
+    const existing = await Species.findOne({ normalizedName }).lean();
+    if (existing) {
+      return sendResponse(res, 409, null, `Species "${existing.name}" already exists. Use the update endpoint to modify it.`, false, { existingId: existing._id });
+    }
 
     // Set defaults for required fields that might be missing from frontend form
     if (!speciesData.type) speciesData.type = 'Mammal';
@@ -353,11 +353,9 @@ exports.createSpecies = async (req, res) => {
     if (req.files && req.files.length > 0) {
       images = req.files.map((file) => `/uploads/${file.filename}`);
     } else if (speciesData.imageUrl) {
-      // Fallback to imageUrl if provided
       images = [speciesData.imageUrl];
     }
     speciesData.images = images;
-    // Set for backward compatibility
     if (images.length > 0) {
       speciesData.image = images[0];
     }
@@ -374,19 +372,12 @@ exports.createSpecies = async (req, res) => {
     const species = new Species(speciesData);
     await species.save();
 
-    res.status(201).json({
-      success: true,
-      message: 'Species created successfully.',
-      data: species,
-    });
+    sendResponse(res, 201, species, 'Species created successfully.');
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Species with this name already exists.',
-      });
+      return sendResponse(res, 409, null, 'A species with this name already exists.', false);
     }
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -430,9 +421,9 @@ exports.updateSpecies = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Species not found.' });
     }
 
-    res.json({ success: true, message: 'Species updated successfully.', data: species });
+    sendResponse(res, 200, species, 'Species updated successfully.');
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -445,9 +436,9 @@ exports.deleteSpecies = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Species not found.' });
     }
 
-    res.json({ success: true, message: `Species "${species.name}" deleted successfully.` });
+    sendResponse(res, 200, null, `Species "${species.name}" deleted successfully.`);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -471,7 +462,7 @@ exports.getAllEcosystemsAdmin = async (req, res) => {
 
     res.json({ success: true, data: withCounts });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -502,19 +493,12 @@ exports.createEcosystem = async (req, res) => {
 
     const ecosystem = new Ecosystem(mappedData);
     await ecosystem.save();
-    res.status(201).json({
-      success: true,
-      message: 'Ecosystem created successfully.',
-      data: ecosystem,
-    });
+    sendResponse(res, 201, ecosystem, 'Ecosystem created successfully.');
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Ecosystem with this name already exists.',
-      });
+      return sendResponse(res, 400, null, 'Ecosystem with this name already exists.', false);
     }
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -554,9 +538,9 @@ exports.updateEcosystem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ecosystem not found.' });
     }
 
-    res.json({ success: true, message: 'Ecosystem updated successfully.', data: ecosystem });
+    sendResponse(res, 200, ecosystem, 'Ecosystem updated successfully.');
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -570,20 +554,17 @@ exports.deleteEcosystem = async (req, res) => {
     // Species.ecosystem is a String, not ObjectId — query by name
     const speciesCount = await Species.countDocuments({ ecosystem: ecosystem.name });
     if (speciesCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete: ${speciesCount} species are linked to this ecosystem. Reassign them first.`,
-      });
+      return sendResponse(res, 400, null, `Cannot delete: ${speciesCount} species are linked to this ecosystem. Reassign them first.`, false);
     }
 
     const deletedEcosystem = await Ecosystem.findByIdAndDelete(id);
     if (!deletedEcosystem) {
-      return res.status(404).json({ success: false, message: 'Ecosystem not found.' });
+      return sendResponse(res, 404, null, 'Ecosystem not found.', false);
     }
 
-    res.json({ success: true, message: `Ecosystem "${deletedEcosystem.name}" deleted successfully.` });
+    sendResponse(res, 200, null, `Ecosystem "${deletedEcosystem.name}" deleted successfully.`);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -606,7 +587,7 @@ exports.getAllZonesAdmin = async (req, res) => {
 
     res.json({ success: true, data: withCounts });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -645,15 +626,12 @@ exports.createZone = async (req, res) => {
 
     const zone = new Zone(mappedData);
     await zone.save();
-    res.status(201).json({ success: true, message: 'Zone created successfully.', data: zone });
+    sendResponse(res, 201, zone, 'Zone created successfully.');
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Zone with this name already exists.',
-      });
+      return sendResponse(res, 400, null, 'Zone with this name already exists.', false);
     }
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -696,9 +674,9 @@ exports.updateZone = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Zone not found.' });
     }
 
-    res.json({ success: true, message: 'Zone updated successfully.', data: zone });
+    sendResponse(res, 200, zone, 'Zone updated successfully.');
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -712,20 +690,17 @@ exports.deleteZone = async (req, res) => {
     // Species.zone is a String, not ObjectId — query by zoneName
     const speciesCount = await Species.countDocuments({ zone: zone.zoneName });
     if (speciesCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete: ${speciesCount} species are linked to this zone.`,
-      });
+      return sendResponse(res, 400, null, `Cannot delete: ${speciesCount} species are linked to this zone.`, false);
     }
 
     const deletedZone = await Zone.findByIdAndDelete(id);
     if (!deletedZone) {
-      return res.status(404).json({ success: false, message: 'Zone not found.' });
+      return sendResponse(res, 404, null, 'Zone not found.', false);
     }
 
-    res.json({ success: true, message: `Zone "${deletedZone.zoneName}" deleted successfully.` });
+    sendResponse(res, 200, null, `Zone "${deletedZone.zoneName}" deleted successfully.`);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -754,8 +729,7 @@ exports.getAllQuestionsAdmin = async (req, res) => {
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit));
 
-    res.json({
-      success: true,
+    sendResponse(res, 200, {
       data: questions,
       pagination: {
         total,
@@ -763,9 +737,9 @@ exports.getAllQuestionsAdmin = async (req, res) => {
         limit: parseInt(limit),
         pages: Math.ceil(total / parseInt(limit)),
       },
-    });
+    }, "Quiz questions fetched successfully");
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -773,13 +747,9 @@ exports.createQuestion = async (req, res) => {
   try {
     const question = new QuizQuestion(req.body);
     await question.save();
-    res.status(201).json({
-      success: true,
-      message: 'Question created successfully.',
-      data: question,
-    });
+    sendResponse(res, 201, question, 'Question created successfully.');
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -793,9 +763,9 @@ exports.updateQuestion = async (req, res) => {
     if (!question) {
       return res.status(404).json({ success: false, message: 'Question not found.' });
     }
-    res.json({ success: true, message: 'Question updated successfully.', data: question });
+    sendResponse(res, 200, question, 'Question updated successfully.');
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
   }
 };
 
@@ -806,9 +776,9 @@ exports.deleteQuestion = async (req, res) => {
     if (!question) {
       return res.status(404).json({ success: false, message: 'Question not found.' });
     }
-    res.json({ success: true, message: 'Question deleted successfully.' });
+    sendResponse(res, 200, null, 'Question deleted successfully.');
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -832,9 +802,9 @@ exports.getMapSpeciesData = async (req, res) => {
     const animalsWithCategory = animals.map((s) => ({ ...s, category: 'animal', _id: s._id.toString() }));
     const plantsWithCategory = plants.map((p) => ({ ...p, category: 'plant', _id: p._id.toString() }));
 
-    res.json({ success: true, data: [...animalsWithCategory, ...plantsWithCategory], total: animals.length + plants.length });
+    sendResponse(res, 200, { data: [...animalsWithCategory, ...plantsWithCategory], total: animals.length + plants.length }, "Map species data fetched successfully");
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    sendResponse(res, 500, null, error.message, false);
   }
 };
 
@@ -844,10 +814,7 @@ exports.updateSpeciesCoordinates = async (req, res) => {
     const { lat, lng, locationName } = req.body;
 
     if (lat === undefined || lat === null || lng === undefined || lng === null) {
-      return res.status(400).json({
-        success: false,
-        message: 'Latitude and longitude are required.',
-      });
+      return sendResponse(res, 400, null, 'Latitude and longitude are required.', false);
     }
 
     const coords = {
@@ -863,15 +830,179 @@ exports.updateSpeciesCoordinates = async (req, res) => {
     }
 
     if (!updated) {
-      return res.status(404).json({ success: false, message: 'Species not found.' });
+      return sendResponse(res, 404, null, 'Species not found.', false);
     }
 
-    res.json({
-      success: true,
-      message: 'Coordinates updated successfully.',
-      data: updated,
-    });
+    sendResponse(res, 200, updated, 'Coordinates updated successfully.');
   } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
+    sendResponse(res, 400, null, error.message, false);
+  }
+};
+
+// ══════════════════════════════════════════════════════════════
+// DEDUPLICATION — POST /api/admin/deduplicate
+// Merges duplicate Species and Plant records by normalized name.
+// Safe to run at any time; returns a full merge log.
+// ══════════════════════════════════════════════════════════════
+
+const User              = require('../models/User');
+const PredictionHistory = require('../models/PredictionHistory');
+
+/** Normalize a species/plant name for grouping */
+const _normName = (n) => (n || '').toLowerCase().trim().replace(/\s+/g, ' ');
+
+/** Pick the most critical conservation status from an array */
+const _STATUS_RANK = [
+  'Least Concern', 'Near Threatened', 'Vulnerable',
+  'Endangered', 'Critically Endangered', 'Extinct in Wild', 'Extinct',
+];
+const _mostCritical = (arr) =>
+  arr.reduce((best, s) => {
+    const idx = _STATUS_RANK.indexOf(s);
+    return idx > _STATUS_RANK.indexOf(best) ? s : best;
+  }, 'Least Concern');
+
+/** Union arrays, remove falsy, deduplicate */
+const _union = (arrays) => [...new Set(arrays.flat().filter(Boolean))];
+
+/** Keep only valid image URLs */
+const _validImg = (u) =>
+  typeof u === 'string' && (u.startsWith('http') || u.startsWith('/uploads/'));
+
+/** Core merge logic shared by both Species and Plant collections */
+async function _mergeCollection(Model, favField, label) {
+  const mergeLog = [];
+  let   merged   = 0;
+  let   removed  = 0;
+
+  const all = await Model.find({}).select(
+    'name normalizedName zone zones ecosystem ecosystems imageUrl images ' +
+    'conservationStatus description funFacts threats uses _id population'
+  ).lean();
+
+  // Group by normalized name
+  const groups = {};
+  for (const doc of all) {
+    const key = _normName(doc.name);
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(doc);
+  }
+
+  for (const [normKey, records] of Object.entries(groups)) {
+    if (records.length <= 1) continue;
+
+    // Primary = longest description
+    const primary = records.reduce((a, b) =>
+      (a.description || '').length >= (b.description || '').length ? a : b
+    );
+    const secondaries   = records.filter((r) => String(r._id) !== String(primary._id));
+    const secondaryIds  = secondaries.map((r) => r._id);
+    const allIds        = records.map((r) => r._id);
+
+    const mergedZones  = _union(records.map((r) => [r.zone, ...(r.zones || [])]));
+    const mergedEcos   = _union(records.map((r) => [r.ecosystem, ...(r.ecosystems || [])]));
+    const allImgs      = records.flatMap((r) => [r.imageUrl, ...(r.images || [])]).filter(_validImg);
+    const mergedImgs   = [...new Set(allImgs)];
+    const bestStatus   = _mostCritical(records.map((r) => r.conservationStatus).filter(Boolean));
+    const bestPop      = Math.max(...records.map((r) => r.population || 0));
+
+    await Model.findByIdAndUpdate(primary._id, {
+      $set: {
+        normalizedName:     normKey,
+        zones:              mergedZones,
+        ecosystems:         mergedEcos,
+        images:             mergedImgs,
+        imageUrl:           mergedImgs[0] || primary.imageUrl || '',
+        conservationStatus: bestStatus,
+        threats:            _union(records.map((r) => r.threats  || [])),
+        funFacts:           _union(records.map((r) => r.funFacts || [])),
+        uses:               _union(records.map((r) => r.uses     || [])),
+        population:         bestPop,
+      },
+    }, { runValidators: false });
+
+    // Re-point user favorites: pull secondary IDs, add primary
+    if (secondaryIds.length > 0) {
+      await User.updateMany(
+        { [favField]: { $in: secondaryIds } },
+        { $pull: { [favField]: { $in: secondaryIds } } }
+      );
+      await User.updateMany(
+        { [favField]: { $in: allIds } },
+        { $addToSet: { [favField]: primary._id } }
+      );
+    }
+
+    await Model.deleteMany({ _id: { $in: secondaryIds } });
+
+    mergeLog.push({
+      collection: label,
+      name:       primary.name,
+      normalized: normKey,
+      merged:     records.length,
+      removed:    secondaryIds.length,
+      zones:      mergedZones,
+      status:     bestStatus,
+      images:     mergedImgs.length,
+    });
+    merged++;
+    removed += secondaryIds.length;
+  }
+
+  return { merged, removed, log: mergeLog };
+}
+
+exports.runDeduplication = async (req, res) => {
+  try {
+    const [beforeSpecies, beforePlants] = await Promise.all([
+      Species.countDocuments(),
+      Plant.countDocuments(),
+    ]);
+
+    const [speciesResult, plantResult] = await Promise.all([
+      _mergeCollection(Species, 'favorites',      'Species'),
+      _mergeCollection(Plant,   'plantFavorites', 'Plant'),
+    ]);
+
+    const [afterSpecies, afterPlants] = await Promise.all([
+      Species.countDocuments(),
+      Plant.countDocuments(),
+    ]);
+
+    // Validation: check for remaining duplicates
+    const [dupSpecies, dupPlants] = await Promise.all([
+      Species.aggregate([
+        { $group: { _id: { $toLower: { $trim: { input: '$name' } } }, count: { $sum: 1 } } },
+        { $match: { count: { $gt: 1 } } },
+      ]),
+      Plant.aggregate([
+        { $group: { _id: { $toLower: { $trim: { input: '$name' } } }, count: { $sum: 1 } } },
+        { $match: { count: { $gt: 1 } } },
+      ]),
+    ]);
+
+    sendResponse(res, 200, {
+      summary: {
+        before: { species: beforeSpecies, plants: beforePlants, total: beforeSpecies + beforePlants },
+        after:  { species: afterSpecies,  plants: afterPlants,  total: afterSpecies  + afterPlants  },
+        removed: {
+          species: beforeSpecies - afterSpecies,
+          plants:  beforePlants  - afterPlants,
+          total:   (beforeSpecies + beforePlants) - (afterSpecies + afterPlants),
+        },
+        groupsMerged: {
+          species: speciesResult.merged,
+          plants:  plantResult.merged,
+        },
+        remainingDuplicates: {
+          species: dupSpecies.length,
+          plants:  dupPlants.length,
+        },
+      },
+      mergeLog: [...speciesResult.log, ...plantResult.log],
+    }, 'Deduplication complete.');
+  } catch (error) {
+    console.error('Deduplication error:', error);
+    sendResponse(res, 500, null, error.message, false);
   }
 };

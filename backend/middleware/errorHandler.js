@@ -1,23 +1,20 @@
-/**
- * Centralized Error Handler
- * Handles all errors in a structured way with consistent JSON responses
- */
+const { sendResponse } = require("../utils/apiResponse");
 const logger = require("../utils/logger");
 
 const errorHandler = (err, req, res, next) => {
-  let statusCode = err.statusCode || 500;
-  let message = err.message || "Internal Server Error";
-  let code = "INTERNAL_ERROR";
-
   // Log the error with structured logging
   logger.error("errorHandler", `Error processing request: ${req.method} ${req.originalUrl}`, {
-    statusCode,
+    statusCode: err.statusCode || 500,
     error: err.message,
     stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
     body: req.body ? JSON.stringify(req.body).slice(0, 200) : undefined,
     query: req.query,
     ip: req.ip,
   });
+
+  let statusCode = err.statusCode || 500;
+  let message = err.message || "Internal Server Error";
+  let code = "INTERNAL_ERROR";
 
   // Mongoose bad ObjectId (invalid ID format)
   if (err.name === "CastError") {
@@ -29,7 +26,7 @@ const errorHandler = (err, req, res, next) => {
   // Mongoose duplicate key
   if (err.code === 11000) {
     statusCode = 400;
-    const field = Object.keys(err.keyValue)[0];
+    const field = Object.keys(err.keyValue || {})[0];
     message = `Duplicate value for field: ${field}`;
     code = "DUPLICATE_ERROR";
   }
@@ -37,7 +34,7 @@ const errorHandler = (err, req, res, next) => {
   // Mongoose validation error
   if (err.name === "ValidationError") {
     statusCode = 400;
-    message = Object.values(err.errors)
+    message = Object.values(err.errors || {})
       .map((e) => e.message)
       .join(", ");
     code = "VALIDATION_ERROR";
@@ -103,17 +100,8 @@ const errorHandler = (err, req, res, next) => {
     code = "RATE_LIMITED";
   }
 
-  // Send response
-  const response = {
-    success: false,
-    error: {
-      code,
-      message,
-      ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-    },
-  };
-
-  res.status(statusCode).json(response);
+  // Send standardized response
+  return sendResponse(res, statusCode, null, `${code}: ${message}`, false);
 };
 
 module.exports = errorHandler;

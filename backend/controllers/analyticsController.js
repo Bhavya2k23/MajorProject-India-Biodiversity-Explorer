@@ -3,6 +3,7 @@ const Plant = require("../models/Plant");
 const User = require("../models/User");
 const Zone = require("../models/Zone");
 const Ecosystem = require("../models/Ecosystem");
+const { sendResponse } = require("../utils/apiResponse");
 
 // Helper to generate domain specific distributions securely.
 const getDomainInsights = async (Model) => {
@@ -67,13 +68,7 @@ exports.getBiodiversityInsights = async (req, res, next) => {
     const animals = await getDomainInsights(Species);
     const plants = await getDomainInsights(Plant);
 
-    res.status(200).json({
-      success: true,
-      data: {
-        animals,
-        plants
-      },
-    });
+    sendResponse(res, 200, { animals, plants });
   } catch (error) {
     next(error);
   }
@@ -81,16 +76,12 @@ exports.getBiodiversityInsights = async (req, res, next) => {
 
 exports.getDashboardAnalytics = async (req, res, next) => {
   try {
-    // Admin dashboard can combine them or stick to animals for now.
     const animalData = await getDomainInsights(Species);
     const totalUsers = await User.countDocuments({ role: "user" });
 
-    res.status(200).json({
-      success: true,
-      data: {
-        ...animalData,
-        summary: { ...animalData.summary, totalUsers },
-      },
+    sendResponse(res, 200, {
+      ...animalData,
+      summary: { ...animalData.summary, totalUsers },
     });
   } catch (error) {
     next(error);
@@ -116,7 +107,7 @@ exports.getEcosystemStats = async (req, res, next) => {
       { $project: { ecosystem: "$_id", totalSpecies: 1, avgPopulation: { $round: ["$avgPopulation", 0] }, endangeredCount: 1, _id: 0 } },
     ]);
 
-    res.status(200).json({ success: true, data: stats });
+    sendResponse(res, 200, stats);
   } catch (error) {
     next(error);
   }
@@ -125,7 +116,7 @@ exports.getEcosystemStats = async (req, res, next) => {
 exports.getAllUsers = async (req, res, next) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: users.length, data: users });
+    sendResponse(res, 200, users, `Fetched ${users.length} users`, true);
   } catch (error) {
     next(error);
   }

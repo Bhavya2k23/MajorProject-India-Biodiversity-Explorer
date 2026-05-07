@@ -278,10 +278,10 @@ mongoose.set('strictQuery', false);
 mongoose.connect(process.env.MONGO_URI).then(async () => {
   console.log('\nConnected to MongoDB, seeding database...');
 
-  const Species = require('./models/Species');
-  const Plant = require('./models/Plant');
-  const Zone = require('./models/Zone');
-  const Ecosystem = require('./models/Ecosystem');
+  const Species = require('../models/Species');
+  const Plant = require('../models/Plant');
+  const Zone = require('../models/Zone');
+  const Ecosystem = require('../models/Ecosystem');
 
   // Clear existing data
   await Species.deleteMany({});

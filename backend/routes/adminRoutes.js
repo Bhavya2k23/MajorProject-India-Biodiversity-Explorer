@@ -95,4 +95,10 @@ router.post(  '/plants',     adminAuth, upload.array('images', 5), plantControll
 router.put(   '/plants/:id', adminAuth, upload.array('images', 5), plantController.updatePlant);
 router.delete('/plants/:id', adminAuth, plantController.deletePlant);
 
+// ─── Deduplication ─────────────────────────────────────────────
+// POST /api/admin/deduplicate
+// Merges all duplicate Species and Plant records by normalised name.
+// Returns a full merge log with before/after counts.
+router.post('/deduplicate', adminAuth, adminController.runDeduplication);
+
 module.exports = router;

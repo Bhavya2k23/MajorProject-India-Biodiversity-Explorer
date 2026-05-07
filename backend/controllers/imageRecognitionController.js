@@ -1,297 +1,298 @@
-const axios = require("axios");
-const FormData = require("form-data");
-const fs = require("fs");
+const axios     = require("axios");
+const FormData  = require("form-data");
+const fs        = require("fs");
 const PredictionHistory = require("../models/PredictionHistory");
-const logger = require("../utils/logger");
+const Species   = require("../models/Species");
+const logger    = require("../utils/logger");
+const { getSpeciesIcon } = require("../utils/getSpeciesIcon");
 
-// ─── Config ────────────────────────────────────────────────────
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+// ─── Config ────────────────────────────────────────────────────────
+const AI_SERVICE_URL     = process.env.AI_SERVICE_URL || "http://localhost:8000";
 const AI_SERVICE_TIMEOUT = 30000; // 30 seconds
 
-// ─── AI Service Health Cache ───────────────────────────────────
-let aiServiceHealthy = true;
-let lastHealthCheck = 0;
-const HEALTH_CACHE_TTL = 30000; // 30 seconds
+// ─── Confidence threshold — predictions below this return "Not sure" ─
+const CONFIDENCE_THRESHOLD = 0.60;
 
-/**
- * Check if AI service is reachable (with caching to avoid hammering).
- */
+// ─── AI Service Health Cache ───────────────────────────────────────
+let aiServiceHealthy = null;
+let lastHealthCheck  = 0;
+const HEALTH_CACHE_TTL = 30000;
+
 async function checkAIServiceHealth() {
   const now = Date.now();
-  if (aiServiceHealthy && (now - lastHealthCheck) < HEALTH_CACHE_TTL) {
+  if (aiServiceHealthy !== null && (now - lastHealthCheck) < HEALTH_CACHE_TTL) {
     return aiServiceHealthy;
   }
   try {
     await axios.get(`${AI_SERVICE_URL}/health`, { timeout: 3000 });
     aiServiceHealthy = true;
-    lastHealthCheck = now;
+    lastHealthCheck  = now;
     return true;
-  } catch {
+  } catch (err) {
     aiServiceHealthy = false;
-    lastHealthCheck = now;
+    lastHealthCheck  = now;
+    logger.warn("image-recognition", "AI service health check failed", { error: err.message });
     return false;
   }
 }
 
-// ─── Helpers ───────────────────────────────────────────────────
-
-/**
- * Forward image buffer to Python AI service and return prediction.
- * @param {Buffer} fileBuffer - Image file buffer
- * @param {string} filename - Original filename
- * @param {string} mimetype - MIME type
- */
-async function callAIService(fileBuffer, filename, mimetype, retries = 2) {
+// ─── Call AI Service ───────────────────────────────────────────────
+async function callAIService(fileBuffer, filename, mimetype, retries = 1) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     const form = new FormData();
     form.append("image", fileBuffer, {
-      filename: filename || "image.jpg",
+      filename:    filename || "image.jpg",
       contentType: mimetype || "image/jpeg",
     });
 
     try {
       const response = await axios.post(`${AI_SERVICE_URL}/predict`, form, {
-        headers: form.getHeaders(),
-        timeout: AI_SERVICE_TIMEOUT,
-        maxBodyLength: 6 * 1024 * 1024,  // 6MB
+        headers:          form.getHeaders(),
+        timeout:          AI_SERVICE_TIMEOUT,
+        maxBodyLength:    6 * 1024 * 1024,
         maxContentLength: 6 * 1024 * 1024,
       });
       return response.data;
     } catch (aiErr) {
-      const status = aiErr.response?.status;
-      const isRateLimited = status === 429;
+      const status      = aiErr.response?.status;
       const isLastAttempt = attempt === retries;
 
-      // If rate limited, wait and retry
-      if (isRateLimited && !isLastAttempt) {
-        const retryAfter = aiErr.response?.headers?.["retry-after"];
-        const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : Math.min(2000 * Math.pow(2, attempt), 10000);
-        logger.warn("image-recognition", `AI service rate limited (attempt ${attempt + 1}/${retries + 1}). Retrying in ${waitMs}ms`);
-        await new Promise(resolve => setTimeout(resolve, waitMs));
-        continue;
-      }
+      logger.warn("image-recognition", `AI service call failed (attempt ${attempt + 1}/${retries + 1})`, {
+        error: aiErr.message, status, code: aiErr.code,
+      });
 
-      // On last attempt or non-retryable error, throw
-      if (aiErr.code === "ECONNREFUSED" || aiErr.code === "ETIMEDOUT") {
-        const err = new Error("AI recognition service is temporarily unavailable. Please try again later.");
+      if (aiErr.code === "ECONNREFUSED") {
+        const err = new Error("AI recognition service is not running. Please start the AI service on port 8000.");
         err.code = "SERVICE_UNAVAILABLE";
         throw err;
       }
-
-      const detail = aiErr.response?.data?.detail || aiErr.message;
-      const error = new Error(`AI service error: ${detail}`);
-      error.status = status;
-      throw error;
+      if (aiErr.code === "ETIMEDOUT" || aiErr.code === "ECONNABORTED") {
+        const err = new Error("AI service timed out. The service may be overloaded.");
+        err.code = "SERVICE_TIMEOUT";
+        throw err;
+      }
+      if (isLastAttempt) {
+        const detail = aiErr.response?.data?.detail || aiErr.message;
+        const error  = new Error(`AI service error: ${detail}`);
+        error.status = status;
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
     }
   }
 }
 
-/**
- * Get public URL for a stored image.
- */
+// ─── Known Indian species list (for prediction validation) ────────
+// Only accept predictions that match species in our database
+async function validateAgainstDatabase(label) {
+  try {
+    const species = await Species.findOne({
+      name: { $regex: label, $options: "i" },
+    }).lean();
+    return !!species;
+  } catch {
+    return true; // If DB check fails, don't block the prediction
+  }
+}
+
+// ─── Mock predictions (Indian species, realistic confidences) ─────
+const MOCK_PREDICTIONS_POOL = [
+  { label: "Bengal Tiger",   confidence: 0.87, scientificName: "Panthera tigris tigris" },
+  { label: "Indian Elephant", confidence: 0.83, scientificName: "Elephas maximus indicus" },
+  { label: "Indian Peafowl", confidence: 0.79, scientificName: "Pavo cristatus" },
+  { label: "Asiatic Lion",   confidence: 0.75, scientificName: "Panthera leo persica" },
+  { label: "King Cobra",     confidence: 0.71, scientificName: "Ophiophagus hannah" },
+  { label: "Indian Leopard", confidence: 0.68, scientificName: "Panthera pardus fusca" },
+  { label: "Sambar Deer",    confidence: 0.64, scientificName: "Rusa unicolor" },
+  { label: "Great Hornbill", confidence: 0.61, scientificName: "Buceros bicornis" },
+  { label: "Gharial",        confidence: 0.58, scientificName: "Gavialis gangeticus" },
+  { label: "Snow Leopard",   confidence: 0.55, scientificName: "Panthera uncia" },
+];
+
+function getMockPredictions() {
+  return MOCK_PREDICTIONS_POOL.slice(0, 3).map((p, i) => ({
+    label:      p.label,
+    confidence: Math.max(0.45, p.confidence - i * 0.08),
+  }));
+}
+
 function getImageUrl(req, filename) {
   const base = `${req.protocol}://${req.get("host")}`;
   return `${base}/uploads/${filename}`;
 }
 
-// ─── Controller ───────────────────────────────────────────────
+// ─── Apply confidence threshold ────────────────────────────────────
+// If top prediction confidence < CONFIDENCE_THRESHOLD → return "Not sure"
+function applyConfidenceThreshold(predictions) {
+  if (!predictions || predictions.length === 0) {
+    return { notSure: true, predictions: [] };
+  }
+  const top = predictions[0];
+  if ((top.confidence || 0) < CONFIDENCE_THRESHOLD) {
+    return { notSure: true, predictions };
+  }
+  return { notSure: false, predictions };
+}
 
-/**
- * POST /api/recognize
- * Upload image → AI service → save history → return result
- */
+// ─── Controller ────────────────────────────────────────────────────
+
+// POST /api/recognize
 exports.recognizeSpecies = async (req, res, next) => {
+  const startTime = Date.now();
+
   try {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: "No image file provided. Send a multipart/form-data with field 'image'.",
+        message: "No image file provided. Send a multipart/form-data request with field 'image'.",
       });
     }
 
-    const startTime = Date.now();
-    logger.info("image-recognition", "Image upload received", { fileSize: req.file.size, mimeType: req.file.mimetype });
+    logger.info("image-recognition", "Image upload received", {
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype,
+    });
 
-    // Read file from disk (buffer is only available with memory storage)
     let fileBuffer;
     try {
       fileBuffer = fs.readFileSync(req.file.path);
     } catch (readErr) {
-      logger.error("image-recognition", "Failed to read uploaded file", { error: readErr.message });
-      return res.status(500).json({
-        success: false,
-        message: "Failed to read uploaded file.",
-      });
+      return res.status(500).json({ success: false, message: "Failed to read uploaded file." });
     }
 
-    // Proactive health check — use mock predictions if service unavailable
+    const imageUrl = getImageUrl(req, req.file.filename);
+
     const isHealthy = await checkAIServiceHealth();
-    let useMock = false;
-    if (!isHealthy) {
-      logger.warn("image-recognition", "AI service unavailable — using mock predictions");
-      useMock = true;
-    }
+    let prediction   = null;
+    let aiErrorMessage = null;
+    let useMock      = !isHealthy;
 
-    // Forward to Python AI service (with retry for rate limits)
-    let prediction;
-    try {
-      prediction = await callAIService(
-        fileBuffer,
-        req.file.originalname,
-        req.file.mimetype
-      );
-    } catch (aiErr) {
-      logger.error("image-recognition", "AI service call failed", { error: aiErr.message });
-
-      if (aiErr.code === "SERVICE_UNAVAILABLE") {
+    if (!useMock) {
+      try {
+        prediction = await callAIService(fileBuffer, req.file.originalname, req.file.mimetype);
+      } catch (aiErr) {
+        logger.error("image-recognition", "AI service call failed", { error: aiErr.message });
+        aiErrorMessage = aiErr.message;
         useMock = true;
-      } else {
-        return res.status(502).json({
-          success: false,
-          message: aiErr.message || "AI service returned an error.",
-          error: aiErr.response?.data?.detail || aiErr.message,
-        });
       }
     }
 
-    // Use mock predictions when AI service is unavailable
-    // All mock predictions are Indian species with realistic confidences
+    const processingTimeMs = Date.now() - startTime;
+
+    // ─── Mock prediction path ──────────────────────────────────────
     if (useMock) {
-      const mockPredictions = [
-        { label: "Bengal Tiger (Panthera tigris tigris)", confidence: 0.92 },
-        { label: "Indian Elephant (Elephas maximus indicus)", confidence: 0.78 },
-        { label: "Indian Peafowl (Pavo cristatus)", confidence: 0.72 },
-        { label: "Asiatic Lion (Panthera leo persica)", confidence: 0.65 },
-        { label: "Sambar Deer (Rusa unicolor)", confidence: 0.58 },
-        { label: "Bengal Fox (Vulpes bengalensis)", confidence: 0.52 },
-        { label: "Great Hornbill (Buceros bicornis)", confidence: 0.48 },
-        { label: "King Cobra (Ophiophagus hannah)", confidence: 0.45 },
-        { label: "Indian Pitta (Pitta brachyura)", confidence: 0.42 },
-        { label: "White-Rumped Vulture (Gyps bengalensis)", confidence: 0.38 },
-      ];
-      // Filter to only those above 60% confidence (or include top 3 regardless)
-      const aboveThreshold = mockPredictions.filter(p => p.confidence >= 0.6);
-      const top3 = aboveThreshold.length >= 3 ? aboveThreshold.slice(0, 3) : mockPredictions.slice(0, 3);
-      const top = top3[0];
+      const mockTop3 = getMockPredictions();
+      const { notSure, predictions } = applyConfidenceThreshold(mockTop3);
+      const top = notSure
+        ? { label: "Not sure", confidence: mockTop3[0]?.confidence || 0 }
+        : mockTop3[0];
 
-      // Save mock prediction to history
-      const processingTimeMs = Date.now() - startTime;
-      const imageUrl = getImageUrl(req, req.file.filename);
-
-      let historyEntry;
       try {
-        historyEntry = await PredictionHistory.create({
+        await PredictionHistory.create({
           imageUrl,
           predictedSpecies: top.label,
-          confidenceScore: top.confidence,
-          top3Predictions: top3,
-          userId: req.user?._id || null,
-          fileSize: req.file.size,
+          confidenceScore:  top.confidence,
+          top3Predictions:  predictions,
+          userId:           req.user?._id || null,
+          fileSize:         req.file.size,
           processingTimeMs,
-          mockPrediction: true,  // Track that this was a mock/fallback prediction
+          mockPrediction:   true,
         });
       } catch (dbErr) {
-        logger.error("image-recognition", "Failed to save history", { error: dbErr.message });
+        logger.error("image-recognition", "Failed to save mock history", { error: dbErr.message });
       }
-
-      logger.info("image-recognition", "Mock prediction served", { processingTimeMs, topPrediction: top.label });
 
       return res.status(200).json({
         success: true,
         data: {
-          predictedSpecies: top.label,
-          confidenceScore: top.confidence,
-          top3Predictions: top3,
+          predictedSpecies:    top.label,
+          confidenceScore:     top.confidence,
+          confidencePercent:   Math.round(top.confidence * 100),
+          isNotSure:           notSure,
+          top3Predictions:     predictions,
           imageUrl,
           processingTimeMs,
-          historyId: historyEntry?._id || null,
-          mockPrediction: true,  // Flag to indicate this is a demo prediction (AI service unavailable)
+          mockPrediction:      true,
+          aiServiceUnavailable: true,
+          icon:                notSure ? "🤔" : getSpeciesIcon(top.label, "", ""),
+          fallbackMessage:     aiErrorMessage || "AI service is currently unavailable. Showing demo predictions.",
         },
       });
     }
 
-    // Server-side minimum confidence threshold (60%)
-    const MIN_SERVER_CONFIDENCE = 0.60;
+    // ─── Real AI prediction path ───────────────────────────────────
+    const rawTop3 = prediction.top3Predictions || [];
+    const { notSure, predictions: filteredTop3 } = applyConfidenceThreshold(rawTop3);
 
-    const processingTimeMs = Date.now() - startTime;
-    const imageUrl = getImageUrl(req, req.file.filename);
+    const topPrediction = notSure
+      ? { label: "Not sure", confidence: rawTop3[0]?.confidence || 0 }
+      : (rawTop3[0] || { label: prediction.predictedSpecies, confidence: prediction.confidenceScore });
 
-    // Filter predictions server-side to only return those above confidence threshold
-    const filteredTop3 = (prediction.top3Predictions || []).filter(p => p.confidence >= MIN_SERVER_CONFIDENCE);
-    const topPrediction = filteredTop3[0] || prediction.top3Predictions?.[0] || { label: prediction.predictedSpecies, confidence: prediction.confidenceScore };
-
-    // Save prediction to history
-    let historyEntry;
     try {
-      historyEntry = await PredictionHistory.create({
+      await PredictionHistory.create({
         imageUrl,
         predictedSpecies: topPrediction.label,
-        confidenceScore: topPrediction.confidence,
-        top3Predictions: filteredTop3.length > 0 ? filteredTop3 : prediction.top3Predictions,
-        userId: req.user?._id || null,
-        fileSize: req.file.size,
+        confidenceScore:  topPrediction.confidence,
+        top3Predictions:  filteredTop3,
+        userId:           req.user?._id || null,
+        fileSize:         req.file.size,
         processingTimeMs,
-        mockPrediction: false,  // Real AI prediction
+        mockPrediction:   false,
       });
     } catch (dbErr) {
-      // Non-fatal: log but don't fail the request
       logger.error("image-recognition", "Failed to save prediction history", { error: dbErr.message });
     }
 
-    logger.info("image-recognition", "Real AI prediction served", { processingTimeMs, topPrediction: topPrediction.label });
+    logger.info("image-recognition", "Real AI prediction served", {
+      processingTimeMs,
+      topPrediction: topPrediction.label,
+      confidence:    topPrediction.confidence,
+      notSure,
+    });
 
     res.status(200).json({
       success: true,
       data: {
-        predictedSpecies: topPrediction.label,
-        confidenceScore: topPrediction.confidence,
-        top3Predictions: filteredTop3,
-        top3AllPredictions: prediction.top3Predictions, // Include all for reference
+        predictedSpecies:           topPrediction.label,
+        confidenceScore:            topPrediction.confidence,
+        confidencePercent:          Math.round(topPrediction.confidence * 100),
+        isNotSure:                  notSure,
+        top3Predictions:            filteredTop3,
         imageUrl,
         processingTimeMs,
-        historyId: historyEntry?._id || null,
-        mockPrediction: false,  // Indicate this is a real AI prediction
-        confidenceThreshold: MIN_SERVER_CONFIDENCE,
-        predictionsAboveThreshold: prediction.predictionsAboveThreshold || filteredTop3.length,
-        isIndianSpecies: prediction.isIndianSpecies ?? true,
+        mockPrediction:             false,
+        confidenceThreshold:        CONFIDENCE_THRESHOLD,
+        predictionsAboveThreshold:  prediction.predictionsAboveThreshold || filteredTop3.length,
+        isIndianSpecies:            prediction.isIndianSpecies ?? true,
+        icon:                       notSure ? "🤔" : getSpeciesIcon(topPrediction.label, "", ""),
       },
     });
   } catch (err) {
-    logger.error("image-recognition", "Unexpected error in recognizeSpecies", { error: err.message, stack: err.stack });
+    logger.error("image-recognition", "Unexpected error in recognizeSpecies", {
+      error: err.message,
+      stack: err.stack,
+    });
     next(err);
   }
 };
 
-/**
- * GET /api/recognize/history
- * Get prediction history for the logged-in user
- */
+// GET /api/recognize/history
 exports.getPredictionHistory = async (req, res, next) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 100;
-    const skip = (page - 1) * limit;
+    const page  = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const skip  = (page - 1) * limit;
 
     const query = { userId: req.user._id };
-
     const [history, total] = await Promise.all([
-      PredictionHistory.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      PredictionHistory.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       PredictionHistory.countDocuments(query),
     ]);
 
     res.status(200).json({
       success: true,
       data: history,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });
   } catch (err) {
     logger.error("image-recognition", "Failed to get prediction history", { error: err.message });
@@ -299,14 +300,10 @@ exports.getPredictionHistory = async (req, res, next) => {
   }
 };
 
-/**
- * DELETE /api/recognize/history
- * Admin: clear all prediction history
- */
+// DELETE /api/recognize/history  (Admin)
 exports.clearPredictionHistory = async (req, res, next) => {
   try {
     const result = await PredictionHistory.deleteMany({});
-    logger.info("image-recognition", "Prediction history cleared", { deletedCount: result.deletedCount });
     res.status(200).json({
       success: true,
       message: `Deleted ${result.deletedCount} prediction records.`,

@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const { sendResponse } = require("../utils/apiResponse");
 
 // Generate JWT token
 const generateToken = (id) => {
@@ -17,7 +18,7 @@ exports.register = async (req, res, next) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: "Email already registered" });
+    sendResponse(res, 400, null, "Email already registered", false);
     }
 
     // Only allow admin role if explicitly set by another admin (prevent privilege escalation)
@@ -26,12 +27,7 @@ exports.register = async (req, res, next) => {
     const user = await User.create({ name, email, password, role: userRole });
     const token = generateToken(user._id);
 
-    res.status(201).json({
-      success: true,
-      message: "Registration successful",
-      token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
-    });
+    sendResponse(res, 201, { token, user: { id: user._id, name: user.name, email: user.email, role: user.role } }, "Registration successful");
   } catch (error) {
     next(error);
   }
@@ -46,17 +42,12 @@ exports.login = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select("+password");
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ success: false, message: "Invalid email or password" });
+    sendResponse(res, 401, null, "Invalid email or password", false);
     }
 
     const token = generateToken(user._id);
 
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      token,
-      user: { id: user._id, name: user.name, email: user.email, role: user.role },
-    });
+    sendResponse(res, 200, { token, user: { id: user._id, name: user.name, email: user.email, role: user.role } }, "Login successful");
   } catch (error) {
     next(error);
   }
@@ -68,7 +59,7 @@ exports.login = async (req, res, next) => {
 exports.getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id).populate("favorites", "name scientificName conservationStatus image");
-    res.status(200).json({ success: true, user });
+    sendResponse(res, 200, { user }, "User profile fetched successfully");
   } catch (error) {
     next(error);
   }
@@ -90,11 +81,7 @@ exports.toggleFavorite = async (req, res, next) => {
     }
 
     await user.save();
-    res.status(200).json({
-      success: true,
-      message: isFavorite ? "Removed from favorites" : "Added to favorites",
-      favorites: user.favorites,
-    });
+    sendResponse(res, 200, { favorites: user.favorites }, isFavorite ? "Removed from favorites" : "Added to favorites");
   } catch (error) {
     next(error);
   }
@@ -104,5 +91,5 @@ exports.toggleFavorite = async (req, res, next) => {
 // @route   POST /api/auth/logout
 // @access  Private
 exports.logout = (req, res) => {
-  res.status(200).json({ success: true, message: "Logged out successfully" });
+  sendResponse(res, 200, null, "Logged out successfully");
 };

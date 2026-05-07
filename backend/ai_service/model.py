@@ -1149,10 +1149,15 @@ class SpeciesClassifier:
                 except Exception as e:
                     print(f"[AI Service] Failed to load fine-tuned model: {e}")
             # Load pre-trained MobileNetV2
-            base = MobileNetV2(weights="imagenet", include_top=True)
-            self.model = base
-            self.model_name = "MobileNetV2 (ImageNet)"
-            print("[AI Service] Loaded pre-trained MobileNetV2")
+            try:
+                base = MobileNetV2(weights="imagenet", include_top=True)
+                self.model = base
+                self.model_name = "MobileNetV2 (ImageNet)"
+                print("[AI Service] Loaded pre-trained MobileNetV2")
+            except Exception as e:
+                print(f"[AI Service] Failed to load MobileNetV2: {e}")
+                self.model = None
+                self.model_name = "Fallback-Rule-Based"
         else:
             self.model = None
             self.model_name = "Fallback-Rule-Based"
@@ -1196,29 +1201,34 @@ class SpeciesClassifier:
         if not TENSORFLOW_AVAILABLE or self.model is None:
             return self._fallback_predict()
 
-        # Get top-k * 3 indices to allow filtering
-        sorted_indices = np.argsort(probs[0])[::-1][:top_k * 3]
-        results = []
-        for idx in sorted_indices:
-            class_idx = int(idx)
-            confidence = float(probs[0][idx])
-            species = self._map_imagenet_to_species(class_idx, confidence)
-            # Only include if it's an Indian species and above confidence threshold
-            if confidence >= MIN_CONFIDENCE_THRESHOLD and self._is_indian_species(species):
-                results.append((species, confidence))
-            if len(results) >= top_k:
-                break
+        try:
+            # Get top-k * 3 indices to allow filtering
+            sorted_indices = np.argsort(probs[0])[::-1][:top_k * 3]
+            results = []
+            for idx in sorted_indices:
+                class_idx = int(idx)
+                confidence = float(probs[0][idx])
+                species = self._map_imagenet_to_species(class_idx, confidence)
+                # Only include if it's an Indian species and above confidence threshold
+                if confidence >= MIN_CONFIDENCE_THRESHOLD and self._is_indian_species(species):
+                    results.append((species, confidence))
+                if len(results) >= top_k:
+                    break
 
-        # If no Indian species found above threshold, return best non-Indian with warning
-        if not results:
-            # Find the best prediction overall
-            best_idx = int(np.argmax(probs[0]))
-            best_conf = float(probs[0][best_idx])
-            best_species = self._map_imagenet_to_species(best_idx, best_conf)
-            # Return it with a note that it's not Indian
-            results.append((f"[?] {best_species}", best_conf))
+            # If no Indian species found above threshold, return best non-Indian with warning
+            if not results:
+                # Find the best prediction overall
+                best_idx = int(np.argmax(probs[0]))
+                best_conf = float(probs[0][best_idx])
+                best_species = self._map_imagenet_to_species(best_idx, best_conf)
+                # Return it with a note that it's not Indian
+                results.append((f"[?] {best_species}", best_conf))
 
-        return results
+            return results
+        except Exception as e:
+            print(f"[AI Service] Prediction error: {e}")
+            # Fallback to rule-based prediction
+            return self._fallback_predict()
 
     def _fallback_predict(self, image: Image.Image = None) -> List[Tuple[str, float]]:
         """Rule-based fallback when TensorFlow is unavailable.
@@ -1299,31 +1309,51 @@ class SpeciesClassifier:
 
     def predict(self, image: Image.Image) -> dict:
         """Run inference and return structured result."""
-        if self.model is None or not TENSORFLOW_AVAILABLE:
-            results = self._fallback_predict(image)
-        else:
-            tensor = self.preprocess(image)
-            probs = self.model.predict(tensor, verbose=0)
-            results = self._get_top_predictions(probs, top_k=3)
+        try:
+            if self.model is None or not TENSORFLOW_AVAILABLE:
+                results = self._fallback_predict(image)
+            else:
+                tensor = self.preprocess(image)
+                probs = self.model.predict(tensor, verbose=0)
+                results = self._get_top_predictions(probs, top_k=3)
 
-        top_species, top_confidence = results[0]
-        # Count how many predictions meet the confidence threshold
-        predictions_above_threshold = len([r for r in results if r[1] >= MIN_CONFIDENCE_THRESHOLD])
-        return {
-            "predictedSpecies": top_species,
-            "confidenceScore": round(float(top_confidence), 4),
-            "top3Predictions": [
-                {
-                    "label": label,
-                    "confidence": round(float(conf), 4),
-                    "isIndianSpecies": self._is_indian_species(label),
-                }
-                for label, conf in results
-            ],
-            "predictionsAboveThreshold": predictions_above_threshold,
-            "confidenceThreshold": MIN_CONFIDENCE_THRESHOLD,
-            "isIndianSpecies": self._is_indian_species(top_species),
-        }
+            # Ensure we always have at least one result
+            if not results or len(results) == 0:
+                results = self._fallback_predict(image)
+
+            # Ensure results is not empty after fallback
+            if not results or len(results) == 0:
+                results = [("Unknown Species", 0.0)]
+
+            top_species, top_confidence = results[0]
+            # Count how many predictions meet the confidence threshold
+            predictions_above_threshold = len([r for r in results if r[1] >= MIN_CONFIDENCE_THRESHOLD])
+            return {
+                "predictedSpecies": top_species,
+                "confidenceScore": round(float(top_confidence), 4),
+                "top3Predictions": [
+                    {
+                        "label": label,
+                        "confidence": round(float(conf), 4),
+                        "isIndianSpecies": self._is_indian_species(label),
+                    }
+                    for label, conf in results
+                ],
+                "predictionsAboveThreshold": predictions_above_threshold,
+                "confidenceThreshold": MIN_CONFIDENCE_THRESHOLD,
+                "isIndianSpecies": self._is_indian_species(top_species),
+            }
+        except Exception as e:
+            print(f"[AI Service] predict() error: {e}")
+            # Return a safe fallback response
+            return {
+                "predictedSpecies": "Unknown Species",
+                "confidenceScore": 0.0,
+                "top3Predictions": [],
+                "predictionsAboveThreshold": 0,
+                "confidenceThreshold": MIN_CONFIDENCE_THRESHOLD,
+                "isIndianSpecies": True,
+            }
 
 
 # Global classifier instance (loaded once at startup)
