@@ -1,35 +1,4 @@
 const Plant = require("../models/Plant");
-<<<<<<< HEAD
-
-exports.getAllPlants = async (req, res, next) => {
-  try {
-    const { zone, ecosystem, type, conservationStatus, sort, page = 1, limit = 200 } = req.query;
-
-    const filter = {};
-    if (zone) filter.zone = { $regex: zone, $options: "i" };
-    if (ecosystem) filter.ecosystem = { $regex: ecosystem, $options: "i" };
-    if (type) filter.type = type;
-    if (conservationStatus) filter.conservationStatus = conservationStatus;
-
-    const sortOptions = {
-      name: { name: 1 },
-      "-name": { name: -1 },
-      newest: { createdAt: -1 },
-    };
-    const sortBy = sortOptions[sort] || { createdAt: -1 };
-
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const total = await Plant.countDocuments(filter);
-    const plants = await Plant.find(filter).sort(sortBy).skip(skip).limit(parseInt(limit));
-
-    res.status(200).json({
-      success: true,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / parseInt(limit)),
-      count: plants.length,
-      data: plants,
-=======
 const { getSpeciesIcon } = require("../utils/getSpeciesIcon");
 const { sendResponse } = require("../utils/apiResponse");
 
@@ -95,22 +64,12 @@ exports.getAllPlants = async (req, res, next) => {
       pages: Math.ceil(total / parseInt(limit)),
       count: data.length,
       data,
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     });
   } catch (error) {
     next(error);
   }
 };
 
-<<<<<<< HEAD
-exports.getPlantById = async (req, res, next) => {
-  try {
-    const plant = await Plant.findById(req.params.id);
-    if (!plant) {
-      return res.status(404).json({ success: false, message: "Plant not found" });
-    }
-    res.status(200).json({ success: true, data: plant });
-=======
 // @desc    Get single plant by ID
 // @route   GET /api/plants/:id
 // @access  Public
@@ -125,41 +84,23 @@ exports.getPlantById = async (req, res, next) => {
         ...plant,
         icon: getSpeciesIcon(plant.name, plant.type || "Plant", plant.scientificName),
       });
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   } catch (error) {
     next(error);
   }
 };
 
-<<<<<<< HEAD
-exports.getRecommendations = async (req, res, next) => {
-  try {
-    const plant = await Plant.findById(req.params.id);
-=======
 // @desc    Get plant recommendations
 // @route   GET /api/plants/recommendations/:id
 // @access  Public
 exports.getRecommendations = async (req, res, next) => {
   try {
     const plant = await Plant.findById(req.params.id).lean();
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     if (!plant) {
       return res.status(404).json({ success: false, message: "Plant not found" });
     }
 
     const recommendations = await Plant.find({
       _id: { $ne: plant._id },
-<<<<<<< HEAD
-      $or: [
-        { ecosystem: plant.ecosystem },
-        { zone: plant.zone },
-      ],
-    })
-      .limit(6)
-      .select("name scientificName type conservationStatus imageUrl images zone ecosystem");
-
-    res.status(200).json({ success: true, count: recommendations.length, data: recommendations });
-=======
       $or: [{ ecosystem: plant.ecosystem }, { zone: plant.zone }],
     })
       .limit(6)
@@ -170,13 +111,10 @@ exports.getRecommendations = async (req, res, next) => {
         ...r,
         icon: getSpeciesIcon(r.name, r.type || "Plant", r.scientificName),
       })), "Recommendations fetched successfully");
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   } catch (error) {
     next(error);
   }
 };
-<<<<<<< HEAD
-=======
 
 // ══════════════════════════════════════════════════════════════
 // ADMIN CRUD
@@ -331,4 +269,3 @@ exports.deletePlant = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d

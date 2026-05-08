@@ -1,30 +1,13 @@
-// ============================================================
-// FILE: backend/controllers/adminController.js
-//
-// FIX APPLIED:
-//   BUG — login() fetched the admin from the DB TWICE:
-//     1. Admin.findOne(...).select('+password')  → already has password
-//     2. Admin.findById(admin._id).select('+password')  → redundant
-//   The first query already selected the password field, so the
-//   second fetch was an unnecessary extra DB round-trip.
-//   REMOVED the redundant second fetch. comparePassword() is now
-//   called directly on the result of the first query.
-// ============================================================
-
 const jwt          = require('jsonwebtoken');
 const Admin        = require('../models/Admin');
 const Species      = require('../models/Species');
-<<<<<<< HEAD
-const Ecosystem    = require('../models/Ecosystem');
-const Zone         = require('../models/Zone');
-const QuizQuestion = require('../models/QuizQuestion');
-=======
 const Plant        = require('../models/Plant');
 const Ecosystem    = require('../models/Ecosystem');
 const Zone         = require('../models/Zone');
 const QuizQuestion = require('../models/QuizQuestion');
+const User         = require('../models/User');
+const PredictionHistory = require('../models/PredictionHistory');
 const { sendResponse } = require('../utils/apiResponse');
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 
 const JWT_SECRET = process.env.JWT_SECRET || 'biodiversity_admin_jwt_secret_2024';
 const JWT_EXPIRES = process.env.JWT_EXPIRES_IN || '7d';
@@ -41,19 +24,9 @@ exports.login = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-<<<<<<< HEAD
-      return res.status(400).json({
-        success: false,
-        message: 'Username and password are required.',
-      });
-=======
-    sendResponse(res, 400, null, 'Username and password are required.', false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
+      return sendResponse(res, 400, null, 'Username and password are required.', false);
     }
 
-    // Allow login with username OR email.
-    // .select('+password') is needed because toJSON() strips it —
-    // this single query is sufficient; no second fetch required.
     const admin = await Admin.findOne({
       $or: [
         { username: username.trim() },
@@ -65,27 +38,16 @@ exports.login = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
 
-    // FIX: use admin directly — password is already on this document
-    // (previously a second Admin.findById().select('+password') was
-    //  called here, which was a redundant extra DB round-trip)
     const isMatch = await admin.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
 
-    // Update last login timestamp
     await Admin.findByIdAndUpdate(admin._id, { lastLogin: new Date() });
 
     const token = generateToken(admin._id);
 
-    // Return admin info without password (toJSON removes it automatically)
-<<<<<<< HEAD
-    res.json({
-      success: true,
-      message: 'Login successful.',
-=======
     sendResponse(res, 200, {
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       token,
       admin: {
         id: admin._id,
@@ -94,11 +56,7 @@ exports.login = async (req, res) => {
         role: admin.role,
         avatar: admin.avatar,
       },
-<<<<<<< HEAD
-    });
-=======
     }, 'Login successful.');
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   } catch (error) {
     console.error('Admin login error:', error);
     res.status(500).json({ success: false, message: 'Server error during login.' });
@@ -106,22 +64,14 @@ exports.login = async (req, res) => {
 };
 
 exports.getProfile = async (req, res) => {
-<<<<<<< HEAD
-  res.json({ success: true, admin: req.admin });
-=======
   sendResponse(res, 200, { admin: req.admin }, "Admin profile fetched successfully");
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 };
 
 exports.seedInitialAdmin = async (req, res) => {
   try {
     const exists = await Admin.findOne({ username: 'admin' });
     if (exists) {
-<<<<<<< HEAD
-      return res.json({ success: false, message: 'Admin already exists. Use login.' });
-=======
       return sendResponse(res, 200, null, 'Admin already exists. Use login.', false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     }
 
     await Admin.create({
@@ -131,27 +81,15 @@ exports.seedInitialAdmin = async (req, res) => {
       role: 'superadmin',
     });
 
-<<<<<<< HEAD
-    res.status(201).json({
-      success: true,
-      message: 'Superadmin created successfully.',
-=======
     sendResponse(res, 201, {
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       credentials: {
         username: 'admin',
         password: 'Admin@123',
         note: 'Change this password after your first login!',
       },
-<<<<<<< HEAD
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     }, 'Superadmin created successfully.');
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -161,21 +99,16 @@ exports.seedInitialAdmin = async (req, res) => {
 
 exports.getDashboardStats = async (req, res) => {
   try {
-<<<<<<< HEAD
-=======
     const { zone, ecosystem, conservationStatus, domain = 'all' } = req.query;
 
-    // Build filter for species queries
     const speciesFilter = {};
     if (zone) speciesFilter.zone = { $regex: zone, $options: 'i' };
     if (ecosystem) speciesFilter.ecosystem = { $regex: ecosystem, $options: 'i' };
     if (conservationStatus) speciesFilter.conservationStatus = conservationStatus;
 
-    // Determine which models to query based on domain
     const includeAnimals = domain === 'all' || domain === 'animals';
     const includePlants = domain === 'all' || domain === 'plants';
 
-    // Get counts and aggregations - wrap each in try/catch for partial failure tolerance
     const safeQuery = async (queryFn, fallback = null) => {
       try {
         return await queryFn();
@@ -185,7 +118,6 @@ exports.getDashboardStats = async (req, res) => {
       }
     };
 
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     const [
       totalSpecies,
       endangeredCount,
@@ -196,62 +128,8 @@ exports.getDashboardStats = async (req, res) => {
       speciesByEcosystem,
       speciesByZone,
       recentSpecies,
-<<<<<<< HEAD
-    ] = await Promise.all([
-      Species.countDocuments(),
-      Species.countDocuments({
-        conservationStatus: { $in: ['Critically Endangered', 'Endangered', 'Vulnerable'] },
-      }),
-      Ecosystem.countDocuments(),
-      Zone.countDocuments(),
-      QuizQuestion.countDocuments(),
-      Species.aggregate([
-        { $group: { _id: '$conservationStatus', count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-      ]),
-      // ecosystem is stored as a String — group directly on the field value
-      Species.aggregate([
-        { $group: { _id: { $ifNull: ['$ecosystem', 'Unknown'] }, count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 },
-      ]),
-      // zone is stored as a String — group directly on the field value
-      Species.aggregate([
-        { $group: { _id: { $ifNull: ['$zone', 'Unknown'] }, count: { $sum: 1 } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 },
-      ]),
-      Species.find()
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('name scientificName conservationStatus imageUrl createdAt'),
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        overview: {
-          totalSpecies,
-          endangeredCount,
-          totalEcosystems,
-          totalZones,
-          totalQuizQuestions,
-        },
-        charts: {
-          speciesByConservation,
-          speciesByEcosystem,
-          speciesByZone,
-        },
-        recentSpecies,
-      },
-    });
-  } catch (error) {
-    console.error('Dashboard stats error:', error);
-    res.status(500).json({ success: false, message: error.message });
-=======
       plantStats,
     ] = await Promise.all([
-      // Species (animals) counts and aggregations
       safeQuery(() => includeAnimals ? Species.countDocuments(speciesFilter) : 0, 0),
       safeQuery(() => includeAnimals ? Species.countDocuments({
         ...speciesFilter,
@@ -281,11 +159,9 @@ exports.getDashboardStats = async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(5)
         .select('name scientificName conservationStatus imageUrl createdAt') : [], []),
-      // Plant counts and aggregations
       safeQuery(() => includePlants ? Plant.countDocuments(speciesFilter) : 0, 0),
     ]);
 
-    // Get plant aggregations if needed
     let plantByConservation = [];
     let plantByEcosystem = [];
     let plantByZone = [];
@@ -314,7 +190,6 @@ exports.getDashboardStats = async (req, res) => {
       plantByZone = pbz;
     }
 
-    // Get unique filter options for dropdowns
     const [availableZones, availableEcosystems, availableStatuses] = await Promise.all([
       safeQuery(() => Species.distinct('zone'), []),
       safeQuery(() => Species.distinct('ecosystem'), []),
@@ -352,7 +227,6 @@ exports.getDashboardStats = async (req, res) => {
   } catch (error) {
     console.error('Dashboard stats error:', error);
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -364,11 +238,7 @@ exports.getAllSpeciesAdmin = async (req, res) => {
   try {
     const {
       page = 1,
-<<<<<<< HEAD
-      limit = 15,
-=======
       limit = 100,
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       search = '',
       status = '',
       ecosystem = '',
@@ -388,21 +258,11 @@ exports.getAllSpeciesAdmin = async (req, res) => {
 
     const total = await Species.countDocuments(query);
     const species = await Species.find(query)
-<<<<<<< HEAD
-      .populate('ecosystem', 'name type')
-      .populate('zone', 'name')
-=======
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       .sort({ createdAt: -1 })
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit));
 
-<<<<<<< HEAD
-    res.json({
-      success: true,
-=======
     sendResponse(res, 200, {
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       data: species,
       pagination: {
         total,
@@ -410,15 +270,9 @@ exports.getAllSpeciesAdmin = async (req, res) => {
         limit: parseInt(limit),
         pages: Math.ceil(total / parseInt(limit)),
       },
-<<<<<<< HEAD
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     }, "Admin species list fetched successfully");
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -426,9 +280,6 @@ exports.createSpecies = async (req, res) => {
   try {
     const speciesData = req.body;
 
-<<<<<<< HEAD
-=======
-    // ── Uniqueness pre-check (FIX 11: duplicate prevention) ──────────
     const rawName = (speciesData.name || '').trim();
     if (!rawName) {
       return res.status(400).json({ success: false, message: 'Species name is required.' });
@@ -439,7 +290,6 @@ exports.createSpecies = async (req, res) => {
       return sendResponse(res, 409, null, `Species "${existing.name}" already exists. Use the update endpoint to modify it.`, false, { existingId: existing._id });
     }
 
-    // Set defaults for required fields that might be missing from frontend form
     if (!speciesData.type) speciesData.type = 'Mammal';
     if (speciesData.population === undefined || speciesData.population === '') {
       speciesData.population = 0;
@@ -462,58 +312,24 @@ exports.createSpecies = async (req, res) => {
       speciesData.climateRisk = Math.min(100, Math.max(0, parseInt(speciesData.climateRisk)));
     }
 
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
-    // Handle array fields that might arrive as comma-separated strings
     if (speciesData.threats && typeof speciesData.threats === 'string') {
       speciesData.threats = speciesData.threats.split(',').map((t) => t.trim()).filter(Boolean);
     }
     if (speciesData.funFacts && typeof speciesData.funFacts === 'string') {
       speciesData.funFacts = speciesData.funFacts.split(',').map((f) => f.trim()).filter(Boolean);
     }
-<<<<<<< HEAD
-    
-=======
 
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
-    // Process uploaded images
     let images = [];
     if (req.files && req.files.length > 0) {
       images = req.files.map((file) => `/uploads/${file.filename}`);
     } else if (speciesData.imageUrl) {
-<<<<<<< HEAD
-      // Fallback to imageUrl if provided
       images = [speciesData.imageUrl];
     }
     speciesData.images = images;
-    // Set for backward compatibility
-=======
-      images = [speciesData.imageUrl];
-    }
-    speciesData.images = images;
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     if (images.length > 0) {
       speciesData.image = images[0];
     }
 
-<<<<<<< HEAD
-    const species = new Species(speciesData);
-    await species.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Species created successfully.',
-      data: species,
-    });
-  } catch (error) {
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Species with this name already exists.',
-      });
-    }
-    res.status(400).json({ success: false, message: error.message });
-=======
-    // Handle coordinates
     if (speciesData.lat !== undefined && speciesData.lng !== undefined) {
       speciesData.coordinates = {
         lat: parseFloat(speciesData.lat),
@@ -531,7 +347,6 @@ exports.createSpecies = async (req, res) => {
       return sendResponse(res, 409, null, 'A species with this name already exists.', false);
     }
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -547,19 +362,8 @@ exports.updateSpecies = async (req, res) => {
       updateData.funFacts = updateData.funFacts.split(',').map((f) => f.trim()).filter(Boolean);
     }
 
-    // Process new uploaded images
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map((file) => `/uploads/${file.filename}`);
-<<<<<<< HEAD
-      // Usually, we'd want to handle replacing vs appending. 
-      // For this implementation, we will replace existing images if new ones are uploaded.
-      updateData.images = newImages;
-      updateData.image = newImages[0];
-    } else if (updateData.imageUrl && !updateData.images) {
-      // Fallback
-       updateData.images = [updateData.imageUrl];
-       updateData.image = updateData.imageUrl;
-=======
       updateData.images = newImages;
       updateData.image = newImages[0];
     } else if (updateData.imageUrl && !updateData.images) {
@@ -567,14 +371,12 @@ exports.updateSpecies = async (req, res) => {
       updateData.image = updateData.imageUrl;
     }
 
-    // Handle coordinates update
     if (updateData.lat !== undefined && updateData.lng !== undefined) {
       updateData.coordinates = {
         lat: parseFloat(updateData.lat),
         lng: parseFloat(updateData.lng),
         locationName: updateData.locationName || '',
       };
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     }
 
     const species = await Species.findByIdAndUpdate(id, updateData, {
@@ -586,15 +388,9 @@ exports.updateSpecies = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Species not found.' });
     }
 
-<<<<<<< HEAD
-    res.json({ success: true, message: 'Species updated successfully.', data: species });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
     sendResponse(res, 200, species, 'Species updated successfully.');
   } catch (error) {
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -607,15 +403,9 @@ exports.deleteSpecies = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Species not found.' });
     }
 
-<<<<<<< HEAD
-    res.json({ success: true, message: `Species "${species.name}" deleted successfully.` });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     sendResponse(res, 200, null, `Species "${species.name}" deleted successfully.`);
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -629,55 +419,27 @@ exports.getAllEcosystemsAdmin = async (req, res) => {
     const query = search ? { name: { $regex: search, $options: 'i' } } : {};
     const ecosystems = await Ecosystem.find(query).sort({ name: 1 });
 
-    // Attach live species count to each ecosystem
     const withCounts = await Promise.all(
       ecosystems.map(async (eco) => {
-<<<<<<< HEAD
-        const count = await Species.countDocuments({ ecosystem: eco._id });
-=======
         const count = await Species.countDocuments({ ecosystem: eco.name });
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
         return { ...eco.toObject(), speciesCount: count };
       })
     );
 
     res.json({ success: true, data: withCounts });
   } catch (error) {
-<<<<<<< HEAD
-    res.status(500).json({ success: false, message: error.message });
-=======
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
 exports.createEcosystem = async (req, res) => {
   try {
     const data = req.body;
-<<<<<<< HEAD
-    if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (data.keyFeatures && typeof data.keyFeatures === 'string') {
-      data.keyFeatures = data.keyFeatures.split(',').map((f) => f.trim()).filter(Boolean);
-    }
 
-    const ecosystem = new Ecosystem(data);
-    await ecosystem.save();
-    res.status(201).json({
-      success: true,
-      message: 'Ecosystem created successfully.',
-      data: ecosystem,
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
-
-    // Map frontend field names to model field names
     const mappedData = {
       name: data.name,
       description: data.description || '',
-      zone: data.states || '', // frontend sends 'states' but model uses 'zone' for the zone name
+      zone: data.states || '',
       keySpecies: [],
       majorThreats: [],
       area: data.area ? parseFloat(data.area) : 0,
@@ -690,7 +452,6 @@ exports.createEcosystem = async (req, res) => {
     if (data.threats && typeof data.threats === 'string') {
       mappedData.majorThreats = data.threats.split(',').map((t) => t.trim()).filter(Boolean);
     }
-    // Handle array inputs
     if (Array.isArray(data.keyFeatures)) mappedData.keySpecies = data.keyFeatures;
     if (Array.isArray(data.threats)) mappedData.majorThreats = data.threats;
 
@@ -702,7 +463,6 @@ exports.createEcosystem = async (req, res) => {
       return sendResponse(res, 400, null, 'Ecosystem with this name already exists.', false);
     }
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -710,18 +470,7 @@ exports.updateEcosystem = async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
-<<<<<<< HEAD
-    if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (data.keyFeatures && typeof data.keyFeatures === 'string') {
-      data.keyFeatures = data.keyFeatures.split(',').map((f) => f.trim()).filter(Boolean);
-    }
 
-    const ecosystem = await Ecosystem.findByIdAndUpdate(id, data, {
-=======
-
-    // Map frontend field names to model field names
     const mappedData = {
       name: data.name,
       description: data.description || '',
@@ -745,7 +494,6 @@ exports.updateEcosystem = async (req, res) => {
     }
 
     const ecosystem = await Ecosystem.findByIdAndUpdate(id, mappedData, {
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       new: true,
       runValidators: true,
     });
@@ -753,44 +501,19 @@ exports.updateEcosystem = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ecosystem not found.' });
     }
 
-<<<<<<< HEAD
-    res.json({ success: true, message: 'Ecosystem updated successfully.', data: ecosystem });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
     sendResponse(res, 200, ecosystem, 'Ecosystem updated successfully.');
   } catch (error) {
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
 exports.deleteEcosystem = async (req, res) => {
   try {
     const { id } = req.params;
-<<<<<<< HEAD
-    const speciesCount = await Species.countDocuments({ ecosystem: id });
-    if (speciesCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete: ${speciesCount} species are linked to this ecosystem. Reassign them first.`,
-      });
-    }
-
-    const ecosystem = await Ecosystem.findByIdAndDelete(id);
-    if (!ecosystem) {
-      return res.status(404).json({ success: false, message: 'Ecosystem not found.' });
-    }
-
-    res.json({ success: true, message: `Ecosystem "${ecosystem.name}" deleted successfully.` });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     const ecosystem = await Ecosystem.findById(id);
     if (!ecosystem) {
       return res.status(404).json({ success: false, message: 'Ecosystem not found.' });
     }
-    // Species.ecosystem is a String, not ObjectId — query by name
     const speciesCount = await Species.countDocuments({ ecosystem: ecosystem.name });
     if (speciesCount > 0) {
       return sendResponse(res, 400, null, `Cannot delete: ${speciesCount} species are linked to this ecosystem. Reassign them first.`, false);
@@ -804,7 +527,6 @@ exports.deleteEcosystem = async (req, res) => {
     sendResponse(res, 200, null, `Ecosystem "${deletedEcosystem.name}" deleted successfully.`);
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -815,56 +537,28 @@ exports.deleteEcosystem = async (req, res) => {
 exports.getAllZonesAdmin = async (req, res) => {
   try {
     const { search = '' } = req.query;
-<<<<<<< HEAD
-    const query = search ? { name: { $regex: search, $options: 'i' } } : {};
-    const zones = await Zone.find(query).sort({ name: 1 });
-
-    const withCounts = await Promise.all(
-      zones.map(async (zone) => {
-        const count = await Species.countDocuments({ zone: zone._id });
-=======
     const query = search ? { zoneName: { $regex: search, $options: 'i' } } : {};
     const zones = await Zone.find(query).sort({ zoneName: 1 });
 
     const withCounts = await Promise.all(
       zones.map(async (zone) => {
         const count = await Species.countDocuments({ zone: zone.zoneName });
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
         return { ...zone.toObject(), speciesCount: count };
       })
     );
 
     res.json({ success: true, data: withCounts });
   } catch (error) {
-<<<<<<< HEAD
-    res.status(500).json({ success: false, message: error.message });
-=======
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
 exports.createZone = async (req, res) => {
   try {
     const data = req.body;
-<<<<<<< HEAD
-    if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (data.keySpecies && typeof data.keySpecies === 'string') {
-      data.keySpecies = data.keySpecies.split(',').map((s) => s.trim()).filter(Boolean);
-    }
 
-    const zone = new Zone(data);
-    await zone.save();
-    res.status(201).json({ success: true, message: 'Zone created successfully.', data: zone });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
-
-    // Map frontend field names to model field names
     const mappedData = {
-      zoneName: data.name, // frontend sends 'name', model uses 'zoneName'
+      zoneName: data.name,
       description: data.description || '',
       statesCovered: [],
       keySpecies: [],
@@ -899,7 +593,6 @@ exports.createZone = async (req, res) => {
       return sendResponse(res, 400, null, 'Zone with this name already exists.', false);
     }
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -907,18 +600,7 @@ exports.updateZone = async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
-<<<<<<< HEAD
-    if (data.states && typeof data.states === 'string') {
-      data.states = data.states.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (data.keySpecies && typeof data.keySpecies === 'string') {
-      data.keySpecies = data.keySpecies.split(',').map((s) => s.trim()).filter(Boolean);
-    }
 
-    const zone = await Zone.findByIdAndUpdate(id, data, { new: true, runValidators: true });
-=======
-
-    // Map frontend field names to model field names
     const mappedData = {
       zoneName: data.name,
       description: data.description || '',
@@ -948,49 +630,23 @@ exports.updateZone = async (req, res) => {
     }
 
     const zone = await Zone.findByIdAndUpdate(id, mappedData, { new: true, runValidators: true });
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     if (!zone) {
       return res.status(404).json({ success: false, message: 'Zone not found.' });
     }
 
-<<<<<<< HEAD
-    res.json({ success: true, message: 'Zone updated successfully.', data: zone });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
     sendResponse(res, 200, zone, 'Zone updated successfully.');
   } catch (error) {
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
 exports.deleteZone = async (req, res) => {
   try {
     const { id } = req.params;
-<<<<<<< HEAD
-    const speciesCount = await Species.countDocuments({ zone: id });
-    if (speciesCount > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot delete: ${speciesCount} species are linked to this zone.`,
-      });
-    }
-
-    const zone = await Zone.findByIdAndDelete(id);
-    if (!zone) {
-      return res.status(404).json({ success: false, message: 'Zone not found.' });
-    }
-
-    res.json({ success: true, message: `Zone "${zone.name}" deleted successfully.` });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     const zone = await Zone.findById(id);
     if (!zone) {
       return res.status(404).json({ success: false, message: 'Zone not found.' });
     }
-    // Species.zone is a String, not ObjectId — query by zoneName
     const speciesCount = await Species.countDocuments({ zone: zone.zoneName });
     if (speciesCount > 0) {
       return sendResponse(res, 400, null, `Cannot delete: ${speciesCount} species are linked to this zone.`, false);
@@ -1004,7 +660,6 @@ exports.deleteZone = async (req, res) => {
     sendResponse(res, 200, null, `Zone "${deletedZone.zoneName}" deleted successfully.`);
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -1016,11 +671,7 @@ exports.getAllQuestionsAdmin = async (req, res) => {
   try {
     const {
       page = 1,
-<<<<<<< HEAD
-      limit = 15,
-=======
       limit = 100,
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       search = '',
       difficulty = '',
       category = '',
@@ -1037,12 +688,7 @@ exports.getAllQuestionsAdmin = async (req, res) => {
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit));
 
-<<<<<<< HEAD
-    res.json({
-      success: true,
-=======
     sendResponse(res, 200, {
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       data: questions,
       pagination: {
         total,
@@ -1050,15 +696,9 @@ exports.getAllQuestionsAdmin = async (req, res) => {
         limit: parseInt(limit),
         pages: Math.ceil(total / parseInt(limit)),
       },
-<<<<<<< HEAD
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     }, "Quiz questions fetched successfully");
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -1066,19 +706,9 @@ exports.createQuestion = async (req, res) => {
   try {
     const question = new QuizQuestion(req.body);
     await question.save();
-<<<<<<< HEAD
-    res.status(201).json({
-      success: true,
-      message: 'Question created successfully.',
-      data: question,
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
     sendResponse(res, 201, question, 'Question created successfully.');
   } catch (error) {
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -1092,15 +722,9 @@ exports.updateQuestion = async (req, res) => {
     if (!question) {
       return res.status(404).json({ success: false, message: 'Question not found.' });
     }
-<<<<<<< HEAD
-    res.json({ success: true, message: 'Question updated successfully.', data: question });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
     sendResponse(res, 200, question, 'Question updated successfully.');
   } catch (error) {
     sendResponse(res, 400, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -1111,15 +735,9 @@ exports.deleteQuestion = async (req, res) => {
     if (!question) {
       return res.status(404).json({ success: false, message: 'Question not found.' });
     }
-<<<<<<< HEAD
-    res.json({ success: true, message: 'Question deleted successfully.' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     sendResponse(res, 200, null, 'Question deleted successfully.');
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -1129,18 +747,6 @@ exports.deleteQuestion = async (req, res) => {
 
 exports.getMapSpeciesData = async (req, res) => {
   try {
-<<<<<<< HEAD
-    const species = await Species.find({
-      'coordinates.lat': { $exists: true, $ne: null },
-    })
-      .select('name scientificName conservationStatus coordinates imageUrl ecosystem zone')
-      .populate('ecosystem', 'name')
-      .populate('zone', 'name');
-
-    res.json({ success: true, data: species, total: species.length });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-=======
     const [animals, plants] = await Promise.all([
       Species.find({ 'coordinates.lat': { $exists: true, $ne: null } })
         .select('name scientificName conservationStatus coordinates imageUrl ecosystem zone type')
@@ -1158,7 +764,6 @@ exports.getMapSpeciesData = async (req, res) => {
     sendResponse(res, 200, { data: [...animalsWithCategory, ...plantsWithCategory], total: animals.length + plants.length }, "Map species data fetched successfully");
   } catch (error) {
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };
 
@@ -1168,37 +773,6 @@ exports.updateSpeciesCoordinates = async (req, res) => {
     const { lat, lng, locationName } = req.body;
 
     if (lat === undefined || lat === null || lng === undefined || lng === null) {
-<<<<<<< HEAD
-      return res.status(400).json({
-        success: false,
-        message: 'Latitude and longitude are required.',
-      });
-    }
-
-    const species = await Species.findByIdAndUpdate(
-      id,
-      {
-        coordinates: {
-          lat: parseFloat(lat),
-          lng: parseFloat(lng),
-          locationName: locationName || '',
-        },
-      },
-      { new: true }
-    );
-
-    if (!species) {
-      return res.status(404).json({ success: false, message: 'Species not found.' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Coordinates updated successfully.',
-      data: species,
-    });
-  } catch (error) {
-    res.status(400).json({ success: false, message: error.message });
-=======
       return sendResponse(res, 400, null, 'Latitude and longitude are required.', false);
     }
 
@@ -1208,7 +782,6 @@ exports.updateSpeciesCoordinates = async (req, res) => {
       locationName: locationName || '',
     };
 
-    // Try Species (animals) first, then Plant
     let updated = await Species.findByIdAndUpdate(id, { coordinates: coords }, { new: true });
     if (!updated) {
       updated = await Plant.findByIdAndUpdate(id, { coordinates: coords }, { new: true });
@@ -1229,9 +802,6 @@ exports.updateSpeciesCoordinates = async (req, res) => {
 // Merges duplicate Species and Plant records by normalized name.
 // Safe to run at any time; returns a full merge log.
 // ══════════════════════════════════════════════════════════════
-
-const User              = require('../models/User');
-const PredictionHistory = require('../models/PredictionHistory');
 
 /** Normalize a species/plant name for grouping */
 const _normName = (n) => (n || '').toLowerCase().trim().replace(/\s+/g, ' ');
@@ -1265,7 +835,6 @@ async function _mergeCollection(Model, favField, label) {
     'conservationStatus description funFacts threats uses _id population'
   ).lean();
 
-  // Group by normalized name
   const groups = {};
   for (const doc of all) {
     const key = _normName(doc.name);
@@ -1276,7 +845,6 @@ async function _mergeCollection(Model, favField, label) {
   for (const [normKey, records] of Object.entries(groups)) {
     if (records.length <= 1) continue;
 
-    // Primary = longest description
     const primary = records.reduce((a, b) =>
       (a.description || '').length >= (b.description || '').length ? a : b
     );
@@ -1306,7 +874,6 @@ async function _mergeCollection(Model, favField, label) {
       },
     }, { runValidators: false });
 
-    // Re-point user favorites: pull secondary IDs, add primary
     if (secondaryIds.length > 0) {
       await User.updateMany(
         { [favField]: { $in: secondaryIds } },
@@ -1354,7 +921,6 @@ exports.runDeduplication = async (req, res) => {
       Plant.countDocuments(),
     ]);
 
-    // Validation: check for remaining duplicates
     const [dupSpecies, dupPlants] = await Promise.all([
       Species.aggregate([
         { $group: { _id: { $toLower: { $trim: { input: '$name' } } }, count: { $sum: 1 } } },
@@ -1389,6 +955,5 @@ exports.runDeduplication = async (req, res) => {
   } catch (error) {
     console.error('Deduplication error:', error);
     sendResponse(res, 500, null, error.message, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 };

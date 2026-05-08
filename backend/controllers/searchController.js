@@ -22,9 +22,6 @@ exports.globalSearch = async (req, res, next) => {
       Species.find({
         $or: [{ name: regex }, { scientificName: regex }, { description: regex }, { zone: regex }, { ecosystem: regex }],
       })
-<<<<<<< HEAD
-        .limit(10)
-=======
         .limit(100)
         .select("name scientificName type conservationStatus image images imageUrl zone ecosystem"),
 
@@ -32,7 +29,6 @@ exports.globalSearch = async (req, res, next) => {
         $or: [{ name: regex }, { scientificName: regex }, { description: regex }, { zone: regex }, { ecosystem: regex }],
       })
         .limit(100)
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
         .select("name scientificName type conservationStatus image images imageUrl zone ecosystem"),
 
       Ecosystem.find({
@@ -126,55 +122,4 @@ exports.getSearchSuggestions = async (req, res, next) => {
   }
 };
 
-// @desc    Instant search suggestions (autocomplete) for species names
-// @route   GET /api/search/suggestions?q=keyword
-// @access  Public
-exports.getSearchSuggestions = async (req, res, next) => {
-  try {
-    const { q } = req.query;
 
-    if (!q || q.trim().length < 1) {
-      return res.json({ success: true, suggestions: [] });
-    }
-
-    const query = q.trim();
-
-    // Primary: starts-with match on name (most relevant for autocomplete)
-    const startsWithRegex = new RegExp(`^${query}`, "i");
-    // Secondary: contains match for broader results
-    const containsRegex   = new RegExp(query, "i");
-
-    const [startsWithMatches, containsMatches] = await Promise.all([
-      Species.find({ $or: [{ name: startsWithRegex }, { scientificName: startsWithRegex }] })
-        .limit(5)
-        .select("_id name scientificName conservationStatus"),
-      Species.find({
-        $or: [{ name: containsRegex }, { scientificName: containsRegex }],
-        name: { $not: startsWithRegex }, // exclude already-found starts-with
-      })
-        .limit(5)
-        .select("_id name scientificName conservationStatus"),
-    ]);
-
-    // Merge, deduplicate, cap at 8
-    const seen = new Set();
-    const suggestions = [];
-    for (const s of [...startsWithMatches, ...containsMatches]) {
-      const id = s._id.toString();
-      if (!seen.has(id)) {
-        seen.add(id);
-        suggestions.push({
-          id,
-          name: s.name,
-          scientificName: s.scientificName,
-          conservationStatus: s.conservationStatus,
-        });
-      }
-      if (suggestions.length >= 8) break;
-    }
-
-    res.json({ success: true, query, suggestions });
-  } catch (error) {
-    next(error);
-  }
-};

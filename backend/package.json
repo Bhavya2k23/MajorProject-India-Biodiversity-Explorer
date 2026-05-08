@@ -11,37 +11,24 @@
     "deduplicate":  "node scripts/deduplicateSpecies.js",
     "fix-images":   "node scripts/fixSpeciesImages.js",
     "fix-species":  "node scripts/fixSpeciesImages.js",
-    "download-assets": "node scripts/downloadLocalAssets.js"
+    "download-assets": "node scripts/downloadLocalAssets.js",
+    "seed:1500": "node scripts/generate1500Species.js"
   },
   "dependencies": {
-<<<<<<< HEAD
+    "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
     "express-rate-limit": "^7.5.1",
     "express-validator": "^7.0.1",
+    "form-data": "^4.0.0",
     "helmet": "^7.2.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.23.0",
     "morgan": "^1.10.1",
-    "multer": "^2.1.1"
-=======
-    "axios":               "^1.6.0",
-    "bcryptjs":            "^2.4.3",
-    "cors":                "^2.8.5",
-    "dotenv":              "^16.3.1",
-    "express":             "^4.18.2",
-    "express-rate-limit":  "^7.1.5",
-    "express-validator":   "^7.0.1",
-    "form-data":           "^4.0.0",
-    "helmet":              "^7.1.0",
-    "jsonwebtoken":        "^9.0.2",
-    "mongoose":            "^8.0.3",
-    "morgan":              "^1.10.0",
-    "multer":              "^1.4.5-lts.1",
-    "node-cron":           "^3.0.3"
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
+    "multer": "^2.1.1",
+    "node-cron": "^3.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

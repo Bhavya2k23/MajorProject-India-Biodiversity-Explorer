@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-const mongoose = require("mongoose");
-
-const plantSchema = new mongoose.Schema(
-  {
-=======
 // ============================================================
 // FILE: backend/models/Plant.js — FULLY FIXED VERSION
 //
@@ -72,14 +66,11 @@ const ZONE_CODES = {
 const plantSchema = new mongoose.Schema(
   {
     // ── Core Identity ─────────────────────────────────────────
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     name: {
       type: String,
       required: [true, "Plant name is required"],
       trim: true,
     },
-<<<<<<< HEAD
-=======
     // FIX 11: normalizedName — uniqueness key (lower-cased, trimmed, collapsed)
     // Auto-computed in pre-save hook. Unique sparse index prevents duplicates.
     normalizedName: {
@@ -87,7 +78,6 @@ const plantSchema = new mongoose.Schema(
       trim:  true,
       index: true,
     },
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     scientificName: {
       type: String,
       required: [true, "Scientific name is required"],
@@ -95,40 +85,24 @@ const plantSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-<<<<<<< HEAD
-      enum: ["Tree", "Shrub", "Herb", "Medicinal", "Grass", "Fern", "Climber", "Other"],
-      required: true,
-    },
-=======
       enum: ["Tree", "Shrub", "Herb", "Medicinal", "Grass", "Fern",
              "Climber", "Epiphyte", "Succulent", "Aquatic", "Other"],
       required: true,
     },
 
     // ── Habitat & Location ───────────────────────────────────
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     zone: {
       type: String,
       required: true,
       trim: true,
     },
-<<<<<<< HEAD
-=======
     // FIX 12: zones[] — populated by dedup script with all merged zone values
     zones: [{ type: String, trim: true }],
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     ecosystem: {
       type: String,
       required: true,
       trim: true,
     },
-<<<<<<< HEAD
-    conservationStatus: {
-      type: String,
-      enum: ["Safe", "Near Threatened", "Vulnerable", "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
-      default: "Safe"
-    },
-=======
     // FIX 13: ecosystems[] — populated by dedup script with all merged ecosystem values
     ecosystems: [{ type: String, trim: true }],
     habitat: {
@@ -186,19 +160,10 @@ const plantSchema = new mongoose.Schema(
     threats: [{ type: String, trim: true }],
 
     // ── Description & Uses ───────────────────────────────────
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     description: {
       type: String,
       required: true,
     },
-<<<<<<< HEAD
-    habitat: {
-      type: String,
-      default: "",
-    },
-    uses: [String],
-    funFacts: [String],
-=======
     // FIX 2: uses field — medicinal/other uses shown on Plants page
     uses: [{ type: String, trim: true }],
     funFacts: [{ type: String, trim: true }],
@@ -210,18 +175,10 @@ const plantSchema = new mongoose.Schema(
     },
 
     // ── Images ───────────────────────────────────────────────
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     imageUrl: {
       type: String,
       default: "",
     },
-<<<<<<< HEAD
-    images: [
-      {
-        type: String,
-      },
-    ],
-=======
     images: [{ type: String }],
     // FIX 6: wikipediaUrl — used by image service
     wikipediaUrl: {
@@ -235,21 +192,10 @@ const plantSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-<<<<<<< HEAD
-  },
-  { timestamps: true }
-);
-
-// Text index for search
-plantSchema.index({ name: "text", scientificName: "text", description: "text", uses: "text" });
-
-module.exports = mongoose.model("Plant", plantSchema);
-=======
 
     // ── Feature Vectors (auto-computed in pre-save) ──────────
     featureVector: {
@@ -322,4 +268,3 @@ plantSchema.index({
 });
 
 module.exports = mongoose.model("Plant", plantSchema);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d

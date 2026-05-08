@@ -77,13 +77,8 @@ exports.chatbot = async (req, res, next) => {
       response = { type: "species", data: species };
     } else if (intent === "plants" || lower.includes("plant") || lower.includes("tree") || lower.includes("herb") || lower.includes("flower")) {
       const plants = keywords.length > 0
-<<<<<<< HEAD
-        ? await Plant.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(3)
-        : await Plant.find({ conservationStatus: { $in: ["Endangered", "Critically Endangered"] } }).limit(5).select("name scientificName conservationStatus type zone ecosystem");
-=======
         ? await Plant.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(50)
         : await Plant.find({ conservationStatus: { $in: ["Endangered", "Critically Endangered"] } }).limit(50).select("name scientificName conservationStatus type zone ecosystem");
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 
       if (plants.length > 0) {
         const p = plants[0];
@@ -98,17 +93,10 @@ exports.chatbot = async (req, res, next) => {
       // Default: search both species and plants
       const [speciesResults, plantResults] = await Promise.all([
         keywords.length > 0
-<<<<<<< HEAD
-          ? Species.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(3)
-          : [],
-        keywords.length > 0
-          ? Plant.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(2)
-=======
           ? Species.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(50)
           : [],
         keywords.length > 0
           ? Plant.find({ $or: [{ name: regex }, { scientificName: regex }, { description: regex }] }).limit(50)
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
           : [],
       ]);
 

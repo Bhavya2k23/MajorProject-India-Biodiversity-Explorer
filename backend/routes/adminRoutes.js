@@ -84,8 +84,6 @@ router.post(  '/quiz',     adminAuth, adminController.createQuestion);
 router.put(   '/quiz/:id', adminAuth, adminController.updateQuestion);
 router.delete('/quiz/:id', adminAuth, adminController.deleteQuestion);
 
-<<<<<<< HEAD
-=======
 // ─── Plant Management ─────────────────────────────────────────
 // GET    /api/admin/plants
 // POST   /api/admin/plants
@@ -102,6 +100,4 @@ router.delete('/plants/:id', adminAuth, plantController.deletePlant);
 // Merges all duplicate Species and Plant records by normalised name.
 // Returns a full merge log with before/after counts.
 router.post('/deduplicate', adminAuth, adminController.runDeduplication);
-
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 module.exports = router;

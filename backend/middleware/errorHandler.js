@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-const errorHandler = (err, req, res, next) => {
-  let error = { ...err };
-  error.message = err.message;
-
-  // Log to console for dev
-  console.error(err);
-
-  // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    const message = `Resource not found with id of ${err.value}`;
-    error = { message, statusCode: 404 };
-=======
 const { sendResponse } = require("../utils/apiResponse");
 const logger = require("../utils/logger");
 
@@ -34,27 +21,10 @@ const errorHandler = (err, req, res, next) => {
     statusCode = 404;
     message = `Resource not found with id: ${err.value}`;
     code = "NOT_FOUND";
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
   }
 
   // Mongoose duplicate key
   if (err.code === 11000) {
-<<<<<<< HEAD
-    const message = 'Duplicate field value entered';
-    error = { message, statusCode: 400 };
-  }
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(val => val.message).join(', ');
-    error = { message, statusCode: 400 };
-  }
-
-  res.status(error.statusCode || 500).json({
-    success: false,
-    error: error.message || 'Server Error',
-  });
-=======
     statusCode = 400;
     const field = Object.keys(err.keyValue || {})[0];
     message = `Duplicate value for field: ${field}`;
@@ -132,7 +102,6 @@ const errorHandler = (err, req, res, next) => {
 
   // Send standardized response
   return sendResponse(res, statusCode, null, `${code}: ${message}`, false);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 };
 
 module.exports = errorHandler;

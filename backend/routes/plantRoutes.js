@@ -1,23 +1,9 @@
 const express = require("express");
-<<<<<<< HEAD
-=======
 const router = express.Router();
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
 const {
   getAllPlants,
   getPlantById,
   getRecommendations,
-<<<<<<< HEAD
-} = require("../controllers/plantController");
-
-const router = express.Router();
-
-router.get("/", getAllPlants);
-router.get("/recommendations/:id", getRecommendations);
-router.get("/:id", getPlantById);
-
-module.exports = router;
-=======
   getAllPlantsAdmin,
   createPlant,
   updatePlant,
@@ -55,4 +41,3 @@ router.put(
 router.delete("/:id", protect, adminOnly, deletePlant);
 
 module.exports = router;
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d

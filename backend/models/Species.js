@@ -165,12 +165,8 @@ const speciesSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-<<<<<<< HEAD
-    habitat: {
-=======
     // FIX 2: diet field — shown on AnimalDetail page
     diet: {
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
       type: String,
       default: "",
       trim: true,

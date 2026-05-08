@@ -153,9 +153,6 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-<<<<<<< HEAD
-module.exports = mongoose.model("User", userSchema);
-=======
 // ─── Instance Method: incLoginAttempts ───────────────────────
 // FIX 9: call this on failed login — locks after 5 attempts
 const LOCK_TIME    = 2 * 60 * 60 * 1000; // 2 hours
@@ -186,4 +183,3 @@ userSchema.index({ isActive: 1 });
 userSchema.index({ "quizScores.score": -1 }); // Leaderboard sorting
 
 module.exports = mongoose.model("User", userSchema);
->>>>>>> 3e43d5918dbd1f1ad9bcaa01cd46ec4c1502210d
