@@ -18,7 +18,7 @@ exports.register = async (req, res, next) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-    sendResponse(res, 400, null, "Email already registered", false);
+      return sendResponse(res, 400, null, "Email already registered", false);
     }
 
     // Only allow admin role if explicitly set by another admin (prevent privilege escalation)
@@ -42,7 +42,7 @@ exports.login = async (req, res, next) => {
 
     const user = await User.findOne({ email }).select("+password");
     if (!user || !(await user.comparePassword(password))) {
-    sendResponse(res, 401, null, "Invalid email or password", false);
+      return sendResponse(res, 401, null, "Invalid email or password", false);
     }
 
     const token = generateToken(user._id);

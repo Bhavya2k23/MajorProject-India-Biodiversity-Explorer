@@ -16,8 +16,6 @@ const upload = require("../middleware/upload");
 // If "recommendations/:id" is placed after "/:id", Express will match
 // "recommendations" as the :id param — causing 404 or wrong controller
 
-const upload = require("../middleware/upload");
-
 // Public routes
 router.get("/", getAllSpecies);
 router.get("/recommendations/:id", getRecommendations); // ← MUST be before /:id

@@ -1,44 +1,22 @@
 // ============================================================
-// FILE: backend/models/Species.js — FULLY FIXED VERSION
-//
-// FIXES APPLIED:
-//  FIX 1  — imageUrl default changed from "" to a real category-based
-//            fallback so Animals page never shows broken images.
-//            Added virtual 'image' getter → always returns best available URL.
-//  FIX 2  — Added 'diet' field (was missing — frontend shows diet info)
-//  FIX 3  — Added 'region' field array (frontend filters by region)
-//  FIX 4  — Added 'states' field array (Zones page needs state mapping)
-//  FIX 5  — Added 'wikipediaUrl' field for AI service lookup
-//  FIX 6  — Added 'isFeatured' boolean for Home page featured species
-//  FIX 7  — conservationStatus index added for analytics/charts queries
-//  FIX 8  — Added 'uses' field back (was in schema comment but missing)
-//  FIX 9  — coordinates made fully optional with better defaults
-//  FIX 10 — Added pre-save hook to auto-compute featureVector codes
-//            so recommendation engine always has fresh vectors
-//  FIX 11 — DUPLICATE FIX: Added 'normalizedName' field (unique sparse index)
-//            Prevents duplicate species entries at the DB level.
-//            normalizedName = name.toLowerCase().trim().replace(/\s+/g,' ')
-//  FIX 12 — DUPLICATE FIX: Added 'zones' array field to store all merged
-//            zone values when duplicates are deduped without breaking
-//            the existing single-zone filter logic.
-//  FIX 13 — DUPLICATE FIX: Added 'ecosystems' array field (same rationale).
+// FILE: backend/models/Species.js — FINAL STABLE VERSION
 // ============================================================
 
 const mongoose = require("mongoose");
 
 // ─── Category Fallback Images ─────────────────────────────────
-// Used when imageUrl is empty — ensures Animals page never shows broken images
+// Used when imageUrl is empty — ensures frontend never shows broken images
 const FALLBACK_IMAGES = {
-  Mammal:     "/images/fallback/mammal.jpg",
-  Bird:       "/images/fallback/bird.jpg",
-  Reptile:    "/images/fallback/reptile.jpg",
-  Amphibian:  "/images/fallback/amphibian.jpg",
-  Fish:       "/images/fallback/fish.jpg",
-  Insect:     "/images/fallback/insect.jpg",
-  Arachnid:   "/images/fallback/insect.jpg",
+  Mammal: "/images/fallback/mammal.jpg",
+  Bird: "/images/fallback/bird.jpg",
+  Reptile: "/images/fallback/reptile.jpg",
+  Amphibian: "/images/fallback/amphibian.jpg",
+  Fish: "/images/fallback/fish.jpg",
+  Insect: "/images/fallback/insect.jpg",
+  Arachnid: "/images/fallback/insect.jpg",
   Crustacean: "/images/fallback/aquatic.jpg",
-  Mollusk:    "/images/fallback/aquatic.jpg",
-  Other:      "/images/fallback/animal.jpg",
+  Mollusk: "/images/fallback/aquatic.jpg",
+  Other: "/images/fallback/animal.jpg",
 };
 
 // ─── Enum Maps for Feature Vectors ───────────────────────────
@@ -71,11 +49,10 @@ const speciesSchema = new mongoose.Schema(
       required: [true, "Species name is required"],
       trim: true,
     },
-    // FIX 11: normalizedName — uniqueness key (lower-cased, trimmed, collapsed)
-    // Auto-computed in pre-save hook. Unique sparse index prevents duplicates.
+    // Unique key to prevent duplicates (computed in pre-save)
     normalizedName: {
-      type:  String,
-      trim:  true,
+      type: String,
+      trim: true,
       index: true,
     },
     scientificName: {
@@ -87,43 +64,21 @@ const speciesSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: ["Mammal", "Bird", "Reptile", "Amphibian", "Fish", "Insect",
-             "Arachnid", "Crustacean", "Mollusk", "Other"],
+        "Arachnid", "Crustacean", "Mollusk", "Other"],
       required: true,
     },
 
     // ── Habitat & Location ───────────────────────────────────
-    zone: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    // FIX 12: zones[] — populated by deduplication script with all merged zone values
-    zones: [{ type: String, trim: true }],
-    ecosystem: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    // FIX 13: ecosystems[] — populated by dedup script with all merged ecosystem values
-    ecosystems: [{ type: String, trim: true }],
-    habitat: {
-      type: String,
-      default: "",
-      trim: true,
-    },
-    // FIX 3: region array — used by frontend filter dropdowns
-    region: [{
-      type: String,
-      trim: true,
-    }],
-    // FIX 4: states array — used by Zones page to list states per zone
-    states: [{
-      type: String,
-      trim: true,
-    }],
+    zone: { type: String, required: true, trim: true },
+    zones: [{ type: String, trim: true }], // For merged duplicate records
+    ecosystem: { type: String, required: true, trim: true },
+    ecosystems: [{ type: String, trim: true }], // For merged duplicate records
+    habitat: { type: String, default: "", trim: true },
+    region: [{ type: String, trim: true }],
+    states: [{ type: String, trim: true }],
     coordinates: {
-      lat:          { type: Number, default: null },
-      lng:          { type: Number, default: null },
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
       locationName: { type: String, default: "" },
     },
 
@@ -131,163 +86,89 @@ const speciesSchema = new mongoose.Schema(
     conservationStatus: {
       type: String,
       enum: ["Least Concern", "Near Threatened", "Vulnerable",
-             "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
+        "Endangered", "Critically Endangered", "Extinct in Wild", "Extinct"],
       required: true,
       default: "Least Concern",
     },
-    population: {
-      type: Number,
-      default: 0,
-      min: [0, "Population cannot be negative"],
-    },
-    habitatLoss: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
-    },
-    pollutionLevel: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
-    },
-    climateRisk: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100,
-    },
+    population: { type: Number, default: 0, min: 0 },
+    habitatLoss: { type: Number, default: 0, min: 0, max: 100 },
+    pollutionLevel: { type: Number, default: 0, min: 0, max: 100 },
+    climateRisk: { type: Number, default: 0, min: 0, max: 100 },
     threats: [{ type: String, trim: true }],
 
     // ── Description & Facts ──────────────────────────────────
-    description: {
-      type: String,
-      required: true,
-    },
-    // FIX 2: diet field — shown on AnimalDetail page
-    diet: {
-      type: String,
-      default: "",
-      trim: true,
-    },
+    description: { type: String, required: true },
+    diet: { type: String, default: "", trim: true },
     uses: [{ type: String, trim: true }],
     funFacts: [{ type: String, trim: true }],
 
     // ── Images ───────────────────────────────────────────────
-    // FIX 1: imageUrl — primary image, defaults to category fallback
-    imageUrl: {
-      type: String,
-      default: "",
-    },
+    imageUrl: { type: String, default: "" },
     images: [{ type: String }],
-    // FIX 5: wikipediaUrl — used by image service to fetch correct image
-    wikipediaUrl: {
-      type: String,
-      default: "",
-    },
+    wikipediaUrl: { type: String, default: "" },
 
     // ── Meta ─────────────────────────────────────────────────
-    // FIX 6: isFeatured — Home page featured species carousel
-    isFeatured: {
-      type: Boolean,
-      default: false,
-    },
-    threats: [String],
-    funFacts: [String],
-    coordinates: {
-      lat: { type: Number, default: null },
-      lng: { type: Number, default: null },
-      locationName: { type: String, default: "" },
-    },
-    imageUrl: {
-      type: String,
-    },
-    image: {
-      type: String, // Kept for backward compatibility
-      default: "",
-    },
-    images: [
-      {
-        type: String,
-      },
-    ],
+    isFeatured: { type: Boolean, default: false },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
 
     // ── Feature Vectors (auto-computed in pre-save) ──────────
-    // FIX 10: auto-computed so recommendation engine always has fresh data
     featureVector: {
       ecosystemCode: { type: Number, default: 0 },
-      statusCode:    { type: Number, default: 0 },
-      typeCode:      { type: Number, default: 0 },
-      zoneCode:      { type: Number, default: 0 },
+      statusCode: { type: Number, default: 0 },
+      typeCode: { type: Number, default: 0 },
+      zoneCode: { type: Number, default: 0 },
     },
   },
   {
     timestamps: true,
-    // FIX 1: include virtuals when converting to JSON/Object
-    toJSON:   { virtuals: true },
+    toJSON: { virtuals: true },
     toObject: { virtuals: true },
   }
 );
 
 // ─── Virtual: image ───────────────────────────────────────────
-// FIX 1: always returns best available image URL
-// Frontend can use species.image instead of species.imageUrl
+// This returns the best image URL. Usage in frontend: species.image
+// Resolves the crash: No physical "image" field exists in the schema above.
 speciesSchema.virtual("image").get(function () {
   if (this.imageUrl && this.imageUrl.startsWith("http")) return this.imageUrl;
-  if (this.images && this.images.length > 0)              return this.images[0];
+  if (this.images && this.images.length > 0) return this.images[0];
   return FALLBACK_IMAGES[this.type] || FALLBACK_IMAGES.Other;
 });
 
-// ─── Pre-Save: Auto-Compute normalizedName + Feature Vectors ─
-// FIX 10: keeps featureVector in sync whenever species is saved
-// FIX 11: auto-computes normalizedName for duplicate prevention
+// ─── Pre-Save Hook ───────────────────────────────────────────
 speciesSchema.pre("save", function (next) {
-  // FIX 11 — normalizedName: always in sync with name
+  // Compute normalized name for duplicate prevention
   if (this.name) {
     this.normalizedName = this.name.toLowerCase().trim().replace(/\s+/g, " ");
   }
 
-  // FIX 10 — feature vectors
+  // Compute feature vectors for recommendation engine
   this.featureVector = {
-    ecosystemCode: ECOSYSTEM_CODES[this.ecosystem]           || 0,
-    statusCode:    STATUS_CODES[this.conservationStatus]     || 0,
-    typeCode:      TYPE_CODES[this.type]                     || 0,
-    zoneCode:      ZONE_CODES[this.zone]                     || 0,
+    ecosystemCode: ECOSYSTEM_CODES[this.ecosystem] || 0,
+    statusCode: STATUS_CODES[this.conservationStatus] || 0,
+    typeCode: TYPE_CODES[this.type] || 0,
+    zoneCode: ZONE_CODES[this.zone] || 0,
   };
   next();
 });
 
 // ─── Indexes ─────────────────────────────────────────────────
-// Text search
 speciesSchema.index({ name: "text", scientificName: "text", description: "text" });
-
-// FIX 11: unique normalizedName index — prevents duplicate species at DB level
-// sparse:true allows old records without normalizedName to coexist until migrated
 speciesSchema.index({ normalizedName: 1 }, { unique: true, sparse: true });
-
-// Filter queries
 speciesSchema.index({ type: 1 });
 speciesSchema.index({ zone: 1 });
 speciesSchema.index({ ecosystem: 1 });
-speciesSchema.index({ conservationStatus: 1 });  // FIX 7: analytics charts
-speciesSchema.index({ isFeatured: 1 });           // FIX 6: home page query
+speciesSchema.index({ conservationStatus: 1 });
+speciesSchema.index({ isFeatured: 1 });
 
-// Compound indexes for recommendation & analytics
-speciesSchema.index({ ecosystem: 1, conservationStatus: 1, type: 1 });
-speciesSchema.index({ ecosystem: 1, conservationStatus: 1 });
-speciesSchema.index({ ecosystem: 1, type: 1 });
-speciesSchema.index({ zone: 1, conservationStatus: 1 });
-
-// Feature vector similarity
+// Compound indexes for recommendation similarity
 speciesSchema.index({
   "featureVector.ecosystemCode": 1,
-  "featureVector.statusCode":    1,
-  "featureVector.typeCode":      1,
+  "featureVector.statusCode": 1,
+  "featureVector.typeCode": 1,
 });
 
 module.exports = mongoose.model("Species", speciesSchema);
