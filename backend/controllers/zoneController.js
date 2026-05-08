@@ -13,7 +13,10 @@ exports.getAllZones = async (req, res, next) => {
     const enrichedZones = await Promise.all(
       zones.map(async (zone) => {
         const speciesCount = await Species.countDocuments({
-          zone: { $regex: zone.zoneName, $options: "i" },
+          $or: [
+            { zone: { $regex: zone.zoneName, $options: "i" } },
+            { zones: { $regex: zone.zoneName, $options: "i" } }
+          ],
         });
         return {
           ...zone.toObject(),
@@ -43,7 +46,10 @@ exports.getZoneById = async (req, res, next) => {
 
     // Fetch species belonging to this zone
     const species = await Species.find({
-      zone: { $regex: zone.zoneName, $options: "i" },
+      $or: [
+        { zone: { $regex: zone.zoneName, $options: "i" } },
+        { zones: { $regex: zone.zoneName, $options: "i" } }
+      ],
     }).select(
       "name scientificName type conservationStatus imageUrl ecosystem population"
     );
@@ -75,7 +81,10 @@ exports.getZoneByName = async (req, res, next) => {
     }
 
     const species = await Species.find({
-      zone: { $regex: zone.zoneName, $options: "i" },
+      $or: [
+        { zone: { $regex: zone.zoneName, $options: "i" } },
+        { zones: { $regex: zone.zoneName, $options: "i" } }
+      ],
     }).select(
       "name scientificName type conservationStatus imageUrl ecosystem population"
     );

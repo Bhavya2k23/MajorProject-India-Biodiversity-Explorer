@@ -27,7 +27,7 @@ exports.getAllPlants = async (req, res, next) => {
 
     const filter = {};
     if (zone)               filter.zone = { $regex: zone, $options: "i" };
-    if (ecosystem)          filter.ecosystem = { $regex: ecosystem, $options: "i" };
+    if (ecosystem)          filter.$or = [{ ecosystem: { $regex: ecosystem, $options: "i" } }, { ecosystems: { $regex: ecosystem, $options: "i" } }];
     if (type)               filter.type = type;
     if (conservationStatus) filter.conservationStatus = conservationStatus;
     if (search) {

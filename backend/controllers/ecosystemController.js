@@ -18,8 +18,8 @@ exports.getAllEcosystems = async (req, res, next) => {
     const enriched = await Promise.all(
       ecosystems.map(async (eco) => {
         const [animalCount, plantCount] = await Promise.all([
-          Species.countDocuments({ ecosystem: { $regex: eco.name, $options: "i" } }),
-          Plant.countDocuments({ ecosystem: { $regex: eco.name, $options: "i" } }),
+          Species.countDocuments({ $or: [{ ecosystem: { $regex: eco.name, $options: "i" } }, { ecosystems: { $regex: eco.name, $options: "i" } }] }),
+          Plant.countDocuments({ $or: [{ ecosystem: { $regex: eco.name, $options: "i" } }, { ecosystems: { $regex: eco.name, $options: "i" } }] }),
         ]);
         return {
           ...eco.toObject(),
@@ -51,16 +51,17 @@ exports.getEcosystemById = async (req, res, next) => {
 
     // Fetch both animals and plants in this ecosystem
     const [species, plants] = await Promise.all([
-      Species.find({ ecosystem: { $regex: ecosystem.name, $options: "i" } }).select(
+      Species.find({ $or: [{ ecosystem: { $regex: ecosystem.name, $options: "i" } }, { ecosystems: { $regex: ecosystem.name, $options: "i" } }] }).select(
         "name scientificName type conservationStatus imageUrl population zone"
       ),
-      Plant.find({ ecosystem: { $regex: ecosystem.name, $options: "i" } }).select(
+      Plant.find({ $or: [{ ecosystem: { $regex: ecosystem.name, $options: "i" } }, { ecosystems: { $regex: ecosystem.name, $options: "i" } }] }).select(
         "name scientificName type conservationStatus imageUrl zone"
       ),
     ]);
 
     res.status(200).json({
       success: true,
+      message: "Ecosystem fetched successfully",
       data: {
         ...ecosystem.toObject(),
         species,
@@ -89,16 +90,17 @@ exports.getEcosystemByName = async (req, res, next) => {
     }
 
     const [species, plants] = await Promise.all([
-      Species.find({ ecosystem: { $regex: ecosystem.name, $options: "i" } }).select(
+      Species.find({ $or: [{ ecosystem: { $regex: ecosystem.name, $options: "i" } }, { ecosystems: { $regex: ecosystem.name, $options: "i" } }] }).select(
         "name scientificName type conservationStatus imageUrl population zone"
       ),
-      Plant.find({ ecosystem: { $regex: ecosystem.name, $options: "i" } }).select(
+      Plant.find({ $or: [{ ecosystem: { $regex: ecosystem.name, $options: "i" } }, { ecosystems: { $regex: ecosystem.name, $options: "i" } }] }).select(
         "name scientificName type conservationStatus imageUrl zone"
       ),
     ]);
 
     res.status(200).json({
       success: true,
+      message: "Ecosystem fetched successfully",
       data: {
         ...ecosystem.toObject(),
         species,
